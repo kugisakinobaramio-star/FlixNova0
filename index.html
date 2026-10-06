@@ -997,5 +997,1915 @@ async function aniLoad(){
     more.hidden = !aniState.hasNext;
     more.disabled = false; more.textContent = "Load More";
     if(!grid.querySelectorAll(".card").length) grid.innerHTML = '<div class="empty">No anime found.</div>';
+  }catch(e){    if(fresh){ grid.innerHTML = '<div class="empty">Anime catalog failed to load — try again.<br><br><button class="btn ghost" id="aniRetry">Retry</button></div>'; try{ $("#aniRetry").addEventListener("click", function(){ aniState.page = 1; aniState.hasNext = true; aniState.busy = false; $("#animeGrid").innerHTML = ""; aniLoad(); }); }catch(e){} }
+    more.disabled = false; more.textContent = "Load More";
+  }
+  aniState.busy = false;
+}
+function normT(s){ return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
+function titleScore(qn, cn){
+  if(!qn || !cn) return 0;
+  if(cn === qn) return 100;
+  if(cn.indexOf(qn) === 0 || qn.indexOf(cn) === 0) return 80;
+  if(cn.indexOf(qn) >= 0 || qn.indexOf(cn) >= 0) return 60;
+  var qw = qn.split(" ").filter(function(w){ return w.length > 2; });
+  if(!qw.length) return 0;
+  var hit = qw.filter(function(w){ return cn.indexOf(w) >= 0; }).length;
+  return Math.round(hit / qw.length * 50);
+}
+async function resolveAnimeImdb(names){
+  var best = null;
+  for(var ni = 0; ni < names.length; ni++){
+    var q = names[ni];
+    if(!q || q.length < 2) continue;
+    var pools = [];
+    try{ pools.push({ t:"series", items:await catalog("series", "", 0, q) }); }catch(e){}
+    try{ pools.push({ t:"movie", items:await catalog("movie", "", 0, q) }); }catch(e){}
+    var qn = normT(q);
+    pools.forEach(function(p){
+      (p.items || []).forEach(function(m){
+        var sc = titleScore(qn, normT(m.name));
+        if(sc > (best ? best.sc : 29)) best = { sc:sc, id:m.id, type:p.t };
+      });
+    });
+    if(best && best.sc >= 80) break;
+  }
+  return best && best.sc > 29 ? best : null;
+}
+async function openAnimeDetail(ali){
+  D.id = "ali" + ali; D.type = "anime"; D.ali = String(ali); D.autoplay = false; D.tvEps = null; D.trailerYt = null; D.snap = null; D.tmdb = ""; D.tmdbKind = "";
+  $("#dback").hidden = false;
+  document.body.style.overflow = "hidden";
+  $("#dHero").style.backgroundImage = "";
+  $("#dTitle").textContent = "Loading…";
+  $("#dMeta").innerHTML = ""; $("#dGenres").innerHTML = ""; $("#dDesc").textContent = ""; $("#dCast").innerHTML = "";
+  $("#dPoster").src = ""; $("#seBox").hidden = true; $("#moreBox").hidden = true; $("#dTrailer").hidden = true;
+  $("#discCtn").innerHTML = "";
+  $("#rateBox").innerHTML = "";
+  try{
+    var j = await aniGraph("query($id:Int){Media(id:$id,type:ANIME){title{romaji english} description coverImage{extraLarge large} bannerImage averageScore seasonYear genres studios{nodes{name}} trailer{id site} episodes format}}", { id:parseInt(ali, 10) });
+    var a = j.data.Media;
+    var hit = await resolveAnimeImdb([a.title.english, a.title.romaji]);
+    if(hit){
+      await openDetail(hit.id, hit.type);
+      var extras = [];
+      if(a.averageScore) extras.push("AL " + (a.averageScore / 10).toFixed(1));
+      var studio = ((a.studios || {}).nodes || [])[0];
+      if(studio) extras.push(studio.name);
+      extras.forEach(function(x){
+        if($("#dMeta").textContent.indexOf(x) < 0) $("#dMeta").innerHTML += '<span class="pill">' + esc(x) + "</span>";
+      });
+      if(a.bannerImage && D.f && !D.f.background){
+        D.f.background = a.bannerImage;
+        $("#dHero").style.backgroundImage = 'url("' + a.bannerImage + '")';
+      }
+      if(!D.trailerYt && a.trailer && a.trailer.site === "youtube" && a.trailer.id){
+        D.trailerYt = a.trailer.id;
+        $("#dTrailer").hidden = false;
+      }
+      return;
+    }
+    renderAliOnly(a, ali);
+  }catch(e){ $("#dTitle").textContent = "Title failed to load."; try{ $("#dMeta").innerHTML = "<button class=\'btn ghost\' id=\'dRetry\'>Retry</button>"; $("#dRetry").addEventListener("click", function(){ try{ $("#dback").hidden = true; }catch(e){} setTimeout(function(){ if(D.type === "anime" && D.ali){ try{ openAnimeDetail(D.ali); return; }catch(e){} } openDetail(D.id, D.type, false); }, 150); }); }catch(e){} }
+}
+function renderAliOnly(a, ali){
+  var name = a.title.english || a.title.romaji;
+  D.snap = { title:name, poster:(a.coverImage || {}).extraLarge || a.coverImage.large, year:String(a.seasonYear || ""), rating:a.averageScore ? String((a.averageScore / 10).toFixed(1)) : "" };
+  if(a.bannerImage) $("#dHero").style.backgroundImage = 'url("' + a.bannerImage + '")';
+  $("#dPoster").src = D.snap.poster;
+  $("#dTitle").textContent = name;
+  $("#dMeta").innerHTML = (a.averageScore ? '<span class="rate">★ ' + (a.averageScore / 10).toFixed(1) + "</span>" : "") +
+    "<span>" + esc(String(a.seasonYear || "")) + "</span>" + '<span class="pill">HD</span><span class="pill">AniList</span>';
+  $("#dGenres").innerHTML = (a.genres || []).map(function(g){ return "<span>" + esc(g) + "</span>"; }).join("");
+  var tmp = document.createElement("div");
+  tmp.innerHTML = a.description || "";
+  $("#dDesc").textContent = tmp.textContent.slice(0, 600);
+  var studio = ((a.studios || {}).nodes || [])[0];
+  $("#dCast").innerHTML = studio ? '<div style="font-size:12.5px;color:var(--mut)">Studio: ' + esc(studio.name) + (a.episodes ? " · " + a.episodes + " episodes" : "") + "</div>" : "";
+  $("#dList").textContent = DB.inList(D.id) ? "✓ In My List" : "+ My List";
+  paintRate(D.id);
+  $("#dPlay").style.display = "none";
+  if(a.trailer && a.trailer.site === "youtube" && a.trailer.id){
+    D.trailerYt = a.trailer.id;
+    $("#dTrailer").hidden = false;
+    $("#dTrailer").textContent = "▶ Trailer";
+  }
+  toast("Streaming not found for this title — info & trailer only");
+  try{ renderDiscussion(D.id); }catch(e){}
+}
+
+var listState = { tab:"all", sort:"recent" };
+async function loadList(){
+  $all("#listTabs button").forEach(function(b){
+    b.classList.toggle("on", b.getAttribute("data-t") === listState.tab);
+    b.onclick = function(){ listState.tab = b.getAttribute("data-t"); loadList(); };
+  });
+  var sortSel = $("#listSort");
+  if(sortSel && !sortSel._w){ sortSel._w = 1; sortSel.addEventListener("change", function(){ listState.sort = sortSel.value; loadList(); }); }
+  if(sortSel) sortSel.value = listState.sort;
+  var grid = $("#listGrid"), cnt = $("#listCount");
+  if(!DB.list.length){ grid.innerHTML = '<div class="empty">Your list is empty. Open any title and tap <b>+ My List</b>.</div>'; if(cnt) cnt.textContent = ""; return; }
+  skels(grid, 6);
+  var items = DB.list.slice();
+  var ms = await Promise.all(items.map(function(x){ return x.type === "anime" ? null : metaOf(x.type, x.id).catch(function(){ return null; }); }));
+  var rows = [];
+  ms.forEach(function(f, i){
+    var x = items[i], name = "", poster = "", yr = "", rt = "";
+    if(x.type === "anime"){ if(!(x.snap && x.snap.title)) return; name = x.snap.title; poster = x.snap.poster; yr = x.snap.year; rt = x.snap.rating; }
+    else { if(!f) return; name = f.name; poster = f.poster; yr = (f.releaseInfo || "").slice(0, 4); rt = f.imdbRating; }
+    rows.push({ x:x, name:name, poster:poster, yr:yr, rt:rt });
+  });
+  if(listState.tab !== "all") rows = rows.filter(function(r){ return r.x.type === listState.tab; });
+  if(listState.sort === "az") rows.sort(function(a, b){ return String(a.name).localeCompare(String(b.name)); });
+  else if(listState.sort === "rate") rows.sort(function(a, b){
+    var ar = DB.rates[a.x.id] || 0, br = DB.rates[b.x.id] || 0;
+    if(br !== ar) return br - ar;
+    return (parseFloat(b.rt) || 0) - (parseFloat(a.rt) || 0);
+  });
+  if(cnt) cnt.textContent = rows.length + " title" + (rows.length === 1 ? "" : "s");
+  grid.innerHTML = rows.length ? rows.map(function(r){ return cardHTML({ id:r.x.id, name:r.name, poster:r.poster, releaseInfo:r.yr, imdbRating:r.rt }, r.x.type); }).join("") : '<div class="empty">Nothing in this view — try another filter.</div>';
+  grid.querySelectorAll(".ql").forEach(function(b){ b.textContent = "\u00d7"; b.title = "Remove from My List"; });
+  bindCards(grid);
+}
+function injectPicks(){
+  try{
+    var old = $("#picksRow"); if(old) old.remove();
+    var rows = DB.list.filter(function(x){ return DB.rates[x.id] === 5 && x.snap && x.snap.title; });
+    if(rows.length < 3) return;
+    var box = $("#homeRows"); if(!box || !box.firstChild) return;
+    var div = document.createElement("div");
+    div.className = "rowSec"; div.id = "picksRow";
+    div.innerHTML = '<div class="rowHead"><h2>Your 5-Star Picks</h2></div><div class="rail">' +
+      rows.slice(0, 14).map(function(x){ return cardHTML({ id:x.id, name:x.snap.title, poster:x.snap.poster, releaseInfo:x.snap.year, imdbRating:x.snap.rating }, x.type); }).join("") + "</div>";
+    box.insertBefore(div, box.firstChild);
+    bindCards(div);
+  }catch(e){}
+}
+var sTimer = 0;
+$("#searchInput").addEventListener("input", function(){
+  clearTimeout(sTimer);
+  var q = $("#searchInput").value.trim();
+  if(q.length < 2){ $("#sdrop").hidden = true; return; }
+  sTimer = setTimeout(function(){ quickSearch(q); }, 350);
+});
+$("#searchInput").addEventListener("keydown", function(e){ if(e.key === "Enter"){ doSearch($("#searchInput").value.trim()); } });
+document.addEventListener("click", function(e){ if(!e.target.closest || !e.target.closest(".searchWrap")) $("#sdrop").hidden = true; });
+async function quickSearch(q){
+  var drop = $("#sdrop");
+  try{
+    var rs = await Promise.all([
+      catalog("movie", "", 0, q).catch(function(){ return []; }),
+      catalog("series", "", 0, q).catch(function(){ return []; })
+    ]);
+    var items = rs[0].slice(0, 4).map(function(m){ m._t = "movie"; return m; })
+      .concat(rs[1].slice(0, 4).map(function(m){ m._t = "series"; return m; }));
+    if(!items.length){ drop.innerHTML = ""; drop.hidden = true; return; }
+    drop.innerHTML = items.map(function(m){
+      return '<button data-id="' + esc(m.id) + '" data-type="' + m._t + '"><img onerror="this.remove()" loading="lazy" referrerpolicy="no-referrer" src="' + esc(m.poster) + '"><span><span class="t">' + esc(m.name) + '</span><br><span class="s">' + (m._t === "movie" ? "Movie" : "TV") + " · " + esc((m.releaseInfo || "").slice(0, 4)) + "</span></span></button>";
+    }).join("");
+    drop.hidden = false;
+    drop.querySelectorAll("button").forEach(function(b){
+      b.addEventListener("click", function(){ drop.hidden = true; $("#searchInput").value = ""; openDetail(b.getAttribute("data-id"), b.getAttribute("data-type")); });
+    });
+  }catch(e){}
+}
+var searchTab = "all", searchCache = { m:[], s:[] };
+function doSearch(q){
+  if(!q) return;
+  $("#sdrop").hidden = true;
+  $("#searchTitle").textContent = 'Results for "' + q + '"';
+  show("search");
+  var grid = $("#searchGrid");
+  skels(grid, 10);
+  var sq = (doSearch._n = (doSearch._n || 0) + 1);
+  $("#searchSub").textContent = "Searching…";
+  Promise.all([
+    catalog("movie", "", 0, q).catch(function(){ return []; }),
+    catalog("series", "", 0, q).catch(function(){ return []; })
+  ]).then(function(rs){
+    if(sq !== doSearch._n) return;
+    searchCache = { m:rs[0], s:rs[1] };
+    paintSearch();
+  }).catch(function(){ var _q = ""; try{ _q = $("#searchInput").value.trim(); }catch(e){} grid.innerHTML = '<div class="empty">Search failed — try again.<br><br><button class="btn ghost" id="searchRetry">Retry</button></div>'; try{ $("#searchRetry").addEventListener("click", function(){ if(_q) doSearch(_q); }); }catch(e){} });
+}
+function paintSearch(){
+  var grid = $("#searchGrid");
+  var items = searchTab === "movie" ? searchCache.m.map(function(m){ m._t = "movie"; return m; })
+    : searchTab === "series" ? searchCache.s.map(function(m){ m._t = "series"; return m; })
+    : searchCache.m.map(function(m){ m._t = "movie"; return m; }).concat(searchCache.s.map(function(m){ m._t = "series"; return m; }));
+  $("#searchSub").textContent = items.length + " result" + (items.length === 1 ? "" : "s");
+  grid.innerHTML = items.length ? items.map(function(m){ return cardHTML(m, m._t); }).join("") : '<div class="empty">No results found.</div>';
+  bindCards(grid);
+}
+$all("#searchTabs button").forEach(function(b){
+  b.addEventListener("click", function(){
+    searchTab = b.getAttribute("data-t");
+    $all("#searchTabs button").forEach(function(x){ x.classList.toggle("on", x === b); });
+    paintSearch();
+  });
+});
+
+var D = { id:"", type:"movie", f:null, season:1, ep:1, autoplay:false };
+function seasonMap(videos){
+  var map = {};
+  (videos || []).forEach(function(v){
+    if(!v || !v.season) return;
+    (map[v.season] = map[v.season] || []).push(v);
+  });
+  Object.keys(map).forEach(function(k){ map[k].sort(function(a, b){ return a.number - b.number; }); });
+  return map;
+}
+async function openDetail(id, type, autoplay){
+  D.id = id; D.type = type; D.autoplay = !!autoplay; D.tvEps = null; D.trailerYt = null; D.ali = "";
+  $("#dback").hidden = false;
+  document.body.style.overflow = "hidden";
+  $("#dHero").style.backgroundImage = "";
+  $("#dTitle").textContent = "Loading…";
+  $("#dMeta").innerHTML = ""; $("#dGenres").innerHTML = ""; $("#dDesc").textContent = ""; $("#dCast").textContent = "";
+  $("#dPoster").src = ""; $("#seBox").hidden = true; $("#dTrailer").hidden = true;
+  $("#dResume").hidden = true;
+  $("#discCtn").innerHTML = "";
+  try{
+    var f = await metaOf(type, id);
+    if(!f || !f.name) throw 0;
+    D.f = f;
+    D.tmdb = f.moviedb_id || ""; D.tmdbKind = "";
+    D.snap = { title:f.name || "", poster:f.poster || "", year:(f.releaseInfo || "").slice(0, 4), rating:f.imdbRating || "" };
+    $("#dPlay").style.display = "";
+    var bg = f.background || f.poster;
+    if(bg) $("#dHero").style.backgroundImage = 'url("' + bg + '")';
+    $("#dPoster").src = f.poster || "";
+    $("#dPoster").alt = f.name || "";
+    $("#dTitle").textContent = f.name || "";
+    $("#dMeta").innerHTML =
+      (f.imdbRating ? '<span class="rate">★ ' + esc(f.imdbRating) + "</span>" : "") +
+      "<span>" + esc((f.releaseInfo || "").slice(0, 4)) + "</span>" +
+      (f.runtime ? "<span> · " + esc(f.runtime) + "</span>" : "") +
+      '<span class="pill">HD</span>' +
+      (f.certification ? '<span class="pill">' + esc(f.certification) + "</span>" : "");
+    $("#dGenres").innerHTML = (f.genres || []).map(function(g){ return "<span>" + esc(g) + "</span>"; }).join("");
+    $("#dDesc").textContent = f.description || "";
+    var castBox = $("#dCast");
+    castBox.innerHTML = "";
+    if((f.cast || []).length){
+      var wrap = document.createElement("div");
+      wrap.className = "castRow";
+      wrap.appendChild(document.createTextNode(""));
+      f.cast.slice(0, 8).forEach(function(n){
+        var b = document.createElement("button");
+        b.textContent = n;
+        b.addEventListener("click", function(){ closeDetail(); $("#searchInput").value = n; doSearch(n); });
+        wrap.appendChild(b);
+      });
+      var lab = document.createElement("div");
+      lab.style.cssText = "font-size:12.5px;color:var(--mut);margin-bottom:6px";
+      lab.textContent = "Starring";
+      castBox.appendChild(lab);
+      castBox.appendChild(wrap);
+    }
+    $("#dList").textContent = DB.inList(id) ? "✓ In My List" : "+ My List";
+    paintRate(id);
+    (function(){ var h = $("#dResume"); try{ var keys = Object.keys(DB.pos || {}).filter(function(k){ return k.indexOf(id + "|") === 0; }); if(!keys.length){ h.hidden = true; return; } keys.sort(function(a, b){ return ((DB.pos[b] || {}).at || 0) - ((DB.pos[a] || {}).at || 0); }); var p0 = DB.pos[keys[0]], ep = (keys[0].split("|")[1] || ""); h.hidden = false; h.textContent = "Resume " + (ep === "m" ? "" : ep.replace("s", "S").replace("e", " E") + " ") + "from " + fmtT(p0.t); }catch(x){ h.hidden = true; } })();
+    $("#moreBox").hidden = true;
+    loadMoreLike(type, f, id);
+    if(type === "series") enrichSeries(id, f);
+    else enrichAnimeMovie(f);
+    var tr = (f.trailers || [])[0];
+    if(tr && (tr.ytId || tr.url)){
+      var yid = tr.ytId || "";
+      var m = !yid && tr.url ? tr.url.match(/[?&]v=([\w-]{6,})/) : null;
+      if(m) yid = m[1];
+      if(yid){ D.trailerYt = yid; $("#dTrailer").hidden = false; }
+    }
+    if(type === "series"){
+      var sm = seasonMap(f.videos);
+      var seasons = Object.keys(sm).map(Number).sort(function(a, b){ return a - b; });
+      if(seasons.length){
+        D.seasons = sm;
+        D.season = seasons[0]; D.ep = 1;
+        var cw = null;
+        DB.cont.forEach(function(x){ if(x.id === id) cw = x; });
+        if(cw && cw.s && sm[cw.s]){ D.season = cw.s; D.ep = cw.e || 1; }
+        paintSeasons();
+        $("#seBox").hidden = false;
+      }
+    }
+    try{ warmPage(); }catch(e){}
+    if(D.autoplay){ D.autoplay = false; startPlay(); }
+    try{ renderDiscussion(D.id); }catch(e){}
   }catch(e){
-<!-- FlixNova Pages deployment refresh: 2026-10-06 -->
+    $("#dTitle").textContent = "Title failed to load."; try{ $("#dMeta").innerHTML = "<button class=\'btn ghost\' id=\'dRetry\'>Retry</button>"; $("#dRetry").addEventListener("click", function(){ try{ $("#dback").hidden = true; }catch(e){} setTimeout(function(){ if(D.type === "anime" && D.ali){ try{ openAnimeDetail(D.ali); return; }catch(e){} } openDetail(D.id, D.type, false); }, 150); }); }catch(e){}
+  }
+}
+function paintSeasons(){
+  var sm = D.seasons, row = $("#seasonRow"), grid = $("#epGrid");
+  row.innerHTML = "";
+  Object.keys(sm).map(Number).sort(function(a, b){ return a - b; }).forEach(function(s){
+    var b = document.createElement("button");
+    b.textContent = "Season " + s;
+    if(s === D.season) b.className = "on";
+    b.addEventListener("click", function(){ D.season = s; D.ep = 1; paintSeasons(); });
+    row.appendChild(b);
+  });
+  grid.innerHTML = "";
+  sm[D.season].forEach(function(v){
+    var b = document.createElement("button");
+    b.textContent = v.number;
+    b.title = v.name || ("Episode " + v.number);
+    if(v.number === D.ep) b.className = "cur";
+    b.addEventListener("click", function(){ D.ep = v.number; paintEpInfo(); playEp(D.f, D.season, D.ep); });
+    grid.appendChild(b);
+  });
+  paintEpInfo();
+}
+function paintEpInfo(){
+  var box = $("#epInfo");
+  var hit = D.tvEps ? D.tvEps[D.season + ":" + D.ep] : null;
+  if(!hit){ box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = "<b>S" + D.season + " E" + D.ep + " · " + esc(hit.name || "") + "</b>" +
+    (hit.airdate ? ' <span class="air">' + esc(hit.airdate) + "</span>" : "") +
+    (hit.summary ? "<br>" + esc(hit.summary) : "");
+}
+function paintRate(id){
+  var box = $("#rateBox");
+  box.innerHTML = "";
+  var cur = DB.rates[id] || 0;
+  var lab = document.createElement("span");
+  lab.textContent = "Your rating";
+  box.appendChild(lab);
+  for(var i = 1; i <= 5; i++){
+    (function(n){
+      var b = document.createElement("button");
+      b.textContent = "★";
+      if(n <= cur) b.className = "lit";
+      b.setAttribute("aria-label", "Rate " + n + " stars");
+      b.addEventListener("click", function(){
+        if(DB.rates[id] === n) delete DB.rates[id]; else DB.rates[id] = n;
+        DB.save(); paintRate(id);
+        toast(DB.rates[id] ? "Rated " + n + "★" : "Rating removed");
+      });
+      box.appendChild(b);
+    })(i);
+  }
+}
+async function tvJSON(path){
+  var url = "https://api.tvmaze.com" + path;
+  function withTimeout(p, ms){
+    return Promise.race([p, new Promise(function(_, rej){ setTimeout(function(){ rej(new Error("timeout")); }, ms); })]);
+  }
+  try{
+    var r = await withTimeout(fetch(url), 9000);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return await r.json();
+  }catch(e){
+    var r2 = await withTimeout(R().superFetch(url), 12000);
+    return await r2.json();
+  }
+}
+async function enrichSeries(id, f){
+  try{
+    var sh = await tvJSON("/lookup/shows?imdb=" + id).catch(function(){ return null; });
+    if(!sh || !sh.id) return;
+    D.tvEps = {};
+    var eps = await tvJSON("/shows/" + sh.id + "/episodes").catch(function(){ return []; });
+    eps.forEach(function(v){ D.tvEps[v.season + ":" + v.number] = { name:v.name, airdate:v.airdate, summary:(v.summary || "").replace(/<[^>]+>/g, "") }; });
+    if(sh.network && sh.network.name && D.id === id){
+      var m = $("#dMeta");
+      m.innerHTML += '<span class="pill">' + esc(sh.network.name) + "</span>";
+    }
+    if(D.id === id) paintEpInfo();
+  }catch(e){}
+}
+async function enrichAnimeMovie(f){
+  try{
+    if(!(f.genres || []).some(function(g){ return /animation|anime/i.test(g); })) return;
+    var j = await aniGraph("query($s:String){Media(search:$s,type:ANIME){title{romaji english} averageScore studios{nodes{name}} trailer{id site} bannerImage}}", { s:f.name });
+    var a = j && j.data && j.data.Media;
+    if(!a) return;
+    if(D.trailerYt == null && a.trailer && a.trailer.site === "youtube" && a.trailer.id){ D.trailerYt = a.trailer.id; $("#dTrailer").hidden = false; }
+    if(a.bannerImage && D.f && !D.f.background){
+      D.f.background = a.bannerImage;
+      $("#dHero").style.backgroundImage = 'url("' + a.bannerImage + '")';
+    }
+    var studio = ((a.studios || {}).nodes || [])[0];
+    if(studio){
+      var m = $("#dMeta");
+      if(m.textContent.indexOf(studio.name) < 0) m.innerHTML += '<span class="pill">' + esc(studio.name) + "</span>";
+    }
+  }catch(e){}
+}
+async function loadMoreLike(type, f, id){
+  try{
+    var g = (f.genres || [])[0];
+    if(!g) return;
+    var items = await catalog(type, g, 0);
+    items = items.filter(function(m){ return m.id !== id; }).slice(0, 14);
+    if(!items.length || D.id !== id) return;
+    $("#moreRail").innerHTML = items.map(function(m){ return cardHTML(m, type); }).join("");
+    bindCards($("#moreRail"));
+    $("#moreBox").hidden = false;
+  }catch(e){}
+}
+function closeDetail(){ $("#dback").hidden = true; document.body.style.overflow = ""; }
+$("#dClose").addEventListener("click", closeDetail);
+$("#dback").addEventListener("click", function(e){ if(e.target === $("#dback")) closeDetail(); });
+document.addEventListener("keydown", function(e){
+  if(!$("#pback").hidden){
+    if(e.key === "Escape") closePlayer();
+    else if(e.key === "ArrowRight" && !$("#pEpNav").hidden && !$("#pNext").disabled){ $("#pNext").click(); }
+    else if(e.key === "ArrowLeft" && !$("#pEpNav").hidden && !$("#pPrev").disabled){ $("#pPrev").click(); }
+    return;
+  }
+  if(e.key === "Escape" && !$("#dback").hidden) closeDetail();
+});
+$("#dList").addEventListener("click", function(){
+  DB.toggle(D.id, D.type, D.snap);
+  $("#dList").textContent = DB.inList(D.id) ? "✓ In My List" : "+ My List";
+  toast(DB.inList(D.id) ? "Added to My List" : "Removed from My List");
+});
+$("#dPlay").addEventListener("click", function(){
+  if(D.type === "series" && D.seasons){
+    var eps = D.seasons[D.season] || [];
+    var v = null;
+    eps.forEach(function(x){ if(x.number === D.ep) v = x; });
+    playEp(D.f, D.season, v ? v.number : (eps[0] || {}).number || 1);
+  } else startPlay();
+});
+$("#dTrailer").addEventListener("click", function(){ if(D.trailerYt) playTrailer(D.trailerYt, D.f.name); });
+
+var NHD_ORDER = { movie:[], tv:[], anime:[] };
+var NHD_RETIRED = true; // nhdapi.com native sources are dead (host timeouts) - mirrors only now
+var NHD_PAGE_CACHE = {};
+function nhdKind(){
+  if(D.type === "anime" && D.ali && !D.tmdb) return "anime";
+  if(P.isSeries) return "tv";
+  return "movie";
+}
+function nhdId(){
+  var k = nhdKind();
+  if(k === "anime") return D.ali || "";
+  return D.tmdb || "";
+}
+function stopStream(){
+  var v = $("#pVideo");
+
+  try{ if(P.hls){ P.hls.destroy(); } }catch(e){}
+  P.hls = null;
+  try{ disarmStallWatch(); }catch(e){}
+  try{ v.pause(); }catch(e){}
+  v.removeAttribute("src");
+  try{ v.load(); }catch(e){}
+  var q = $("#pQuality"); q.hidden = true; q.innerHTML = "";
+  var au = $("#pAudio"); au.hidden = true; au.innerHTML = "";
+  v.querySelectorAll("track").forEach(function(t){ t.remove(); });
+}
+function attachHls(video, url, onReady, headers){
+  return new Promise(function(resolve, reject){
+    if(P.hls){ try{ P.hls.destroy(); }catch(e){} P.hls = null; }
+    var Hls = window.Hls;
+    if(!Hls || !Hls.isSupported()){
+      video.src = url;
+      var to = setTimeout(function(){ reject(new Error("hls unsupported")); }, 20000);
+      video.onloadeddata = function(){ clearTimeout(to); resolve(); };
+      video.onerror = function(){ clearTimeout(to); reject(new Error("load")); };
+      return;
+    }
+    var hls = new Hls({ maxBufferLength:60, maxMaxBufferLength:120, manifestLoadingMaxRetry:3, levelLoadingMaxRetry:4, fragLoadingMaxRetry:6 });
+    if(headers) hls.config.xhrSetup = function(xhr){ for(var k in headers){ try{ xhr.setRequestHeader(k, headers[k]); }catch(e){} } };
+    P.hls = hls;
+    var to = setTimeout(function(){ finish(false, new Error("stall")); }, 20000);
+    function finish(ok, err){
+      clearTimeout(to);
+      hls.off(Hls.Events.MANIFEST_PARSED, parsed);
+      hls.off(Hls.Events.ERROR, onErr);
+      if(ok) resolve(); else reject(err || new Error("hls"));
+    }
+    function parsed(){ paintQuality(hls); finish(true); }
+    function onErr(evt, data){
+      if(data && data.fatal){ try{ hls.destroy(); }catch(e){} P.hls = null; finish(false, new Error("fatal")); }
+    }
+    hls.on(Hls.Events.MANIFEST_PARSED, parsed);
+    hls.on(Hls.Events.ERROR, onErr);
+    hls.attachMedia(video);
+    hls.loadSource(url);
+  });
+}
+function paintQuality(hls){
+  var q = $("#pQuality");
+  q.innerHTML = "";
+  if(!hls.levels || hls.levels.length < 2){ q.hidden = true; return; }
+  var auto = document.createElement("option");
+  auto.value = "-1"; auto.textContent = "Auto";
+  q.appendChild(auto);
+  hls.levels.forEach(function(l, i){
+    var o = document.createElement("option");
+    o.value = String(i);
+    o.textContent = (l.height ? l.height + "p" : (Math.round(l.bitrate / 1000) + "k"));
+    q.appendChild(o);
+  });
+  q.hidden = false;
+  q.onchange = function(){ hls.currentLevel = parseInt(q.value, 10); };
+}
+function paintAudioTracks(tracks, onPick){
+  var au = $("#pAudio");
+  au.innerHTML = "";
+  if(!tracks || tracks.length < 2){ au.hidden = true; return; }
+  tracks.forEach(function(t, i){
+    var o = document.createElement("option");
+    o.value = String(i);
+    o.textContent = t.label || t.language || ("Audio " + (i + 1));
+    au.appendChild(o);
+  });
+  au.hidden = false;
+  au.onchange = function(){ onPick(tracks[parseInt(au.value, 10)]); };
+}
+function paintSubs(list){
+  var v = $("#pVideo");
+  v.querySelectorAll("track").forEach(function(t){ t.remove(); });
+  (list || []).forEach(function(s){
+    if(!s.url && !s.file) return;
+    var tr = document.createElement("track");
+    tr.kind = "subtitles";
+    tr.label = s.label || s.lang || "CC";
+    tr.srclang = (s.lang || "en").slice(0, 2);
+    tr.src = s.url || s.file;
+    v.appendChild(tr);
+  });
+}
+function pStatus(html){
+  var box = $("#pStatus");
+  if(!html){ box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  box.innerHTML = html;
+}
+function pSpin(msg){
+  pStatus('<div class="spin"></div><div class="msg">' + esc(msg) + "</div>");
+}
+var P = { prov:"", s:1, e:1, isSeries:false, title:"", hls:null, excl:[], tid:"", trailer:"" };
+function startPlay(){
+  P.isSeries = D.type === "series";
+  P.title = D.f ? D.f.name : "";
+  if(P.isSeries){ P.s = D.season; P.e = D.ep; }
+  P.prov = (typeof DB.srv === "string" && DB.srv) || ""; P.tid = D.id; P.excl = []; P.trailer = "";
+  paintPlayer();
+  $("#pback").hidden = false;
+  document.body.style.overflow = "hidden";
+}
+async function playEp(f, s, e){
+  var nid = (f && f.id) || D.id;
+  var changed = nid !== D.id;
+  D.id = nid; D.type = "series";
+  if(f && f.name) D.f = f;
+  D.tmdb = (D.f && D.f.moviedb_id) || ""; D.tmdbKind = "";
+  if(!D.tmdb){
+    try{
+      var full = await metaOf("series", nid);
+      if(D.id !== nid) return;
+      if(full){ D.f = full; f = full; D.tmdb = full.moviedb_id || ""; }
+    }catch(e){}
+    if(D.id !== nid) return;
+  }
+  if(D.f && D.f.videos && (!D.seasons || changed)) D.seasons = seasonMap(D.f.videos);
+  D.season = s; D.ep = e;
+  P.isSeries = true; P.s = s; P.e = e; P.trailer = "";
+  if(P.tid !== D.id){ P.prov = (typeof DB.srv === "string" && DB.srv) || ""; P.tid = D.id; P.excl = []; }
+  P.title = ((f && f.name) || (D.f && D.f.name) || "") + " — S" + s + " E" + e;
+  DB.touchCont({ id:D.id, type:"series", title:(f.name || ""), poster:f.poster || "", year:(f.releaseInfo || "").slice(0, 4), rating:f.imdbRating || "", tmdb:D.tmdb || "", s:s, e:e });
+  if(!$("#dback").hidden && D.seasons) paintSeasons();
+  paintPlayer();
+  $("#dback").hidden = true;
+  $("#pback").hidden = false;
+  document.body.style.overflow = "hidden";
+}
+function playTrailer(yid, title){
+  P.isSeries = false; P.trailer = yid; P.title = title + " — Trailer";
+  paintPlayer();
+  $("#pback").hidden = false;
+  document.body.style.overflow = "hidden";
+}
+/* ===== FlixNova stream core (rebuilt Oct 2026: embed mirrors only) ===== */
+var MIRRORS = [
+  { id:"rive", label:"Rive", tip:"Rive multi-source player", timeout:12000 },
+  { id:"vidlink", label:"VidLink", tip:"VidLink mirror - blocks iframes, opens standalone too", timeout:12000, std:1 },
+  { id:"vidzee", label:"VidZee", tip:"VidZee mirror", timeout:12000 },
+  { id:"vidlove", label:"VidLove", tip:"VidLove mirror - demands its domain in-frame, opens standalone too", timeout:12000, std:1 },
+  { id:"vidfast", label:"VidFast", tip:"VidFast mirror - blocks iframes, opens standalone too", timeout:15000, std:1 },
+  { id:"vidnest", label:"VidNest", tip:"VidNest mirror - blocks iframes, opens standalone too", timeout:12000, std:1 },
+  { id:"cinezo", label:"Cinezo", tip:"Cinezo embed - no ads", timeout:12000 },
+  { id:"embedsu", label:"EmbedSu", tip:"EmbedSu mirror (cinextma)", timeout:12000 },
+  { id:"autoembed", label:"AutoEmbed", tip:"AutoEmbed mirror (cinextma)", timeout:12000 },
+  { id:"autoembed2", label:"AutoEmbed2", tip:"AutoEmbed alt mirror (cinextma)", timeout:12000 },
+  { id:"moviesapi", label:"MoviesAPI", tip:"MoviesAPI mirror (cinextma)", timeout:12000 },
+  { id:"filmku", label:"FilmKu", tip:"FilmKu mirror (cinextma)", timeout:12000 },
+  { id:"nontongo", label:"NontonGo", tip:"NontonGo mirror (cinextma)", timeout:12000 }
+];
+function mirrorById(id){ for(var i = 0; i < MIRRORS.length; i++) if(MIRRORS[i].id === id) return MIRRORS[i]; return null; }
+function mirrorSrc(id){
+  var tmdb = String(D.tmdb || "");
+  if(!/^\d+$/.test(tmdb)) return "";
+  var S = Math.max(1, P.s || 1), E = Math.max(1, P.e || 1);
+  var t = encodeURIComponent(tmdb);
+  var tvShape = P.isSeries || D.tmdbKind === "tv";
+  if(D.tmdbKind === "movie") tvShape = false;
+  if(id === "vidlink") return tvShape ? "https://vidlink.pro/tv/" + t + "/" + S + "/" + E : "https://vidlink.pro/movie/" + t;
+  if(id === "rive") return tvShape ? "https://www.rivestream.app/embed?type=tv&id=" + t + "&season=" + S + "&episode=" + E : "https://www.rivestream.app/embed?type=movie&id=" + t;
+  if(id === "vidzee") return tvShape ? "https://player.vidzee.wtf/embed/tv/" + t + "/" + S + "/" + E : "https://player.vidzee.wtf/embed/movie/" + t;
+  if(id === "vidlove") return tvShape ? "https://player.vidlove.cc/embed/tv/" + t + "/" + S + "/" + E : "https://player.vidlove.cc/embed/movie/" + t;
+  if(id === "vidfast") return tvShape ? "https://vidfast.pro/tv/" + t + "/" + S + "/" + E + "?autoPlay=true" : "https://vidfast.pro/movie/" + t + "?autoPlay=true";
+  if(id === "vidnest") return tvShape ? "https://vidnest.fun/tv/" + t + "/" + S + "/" + E : "https://vidnest.fun/movie/" + t;
+  if(id === "cinezo") return tvShape ? "https://player.cinezo.live/embed/tv/" + t + "/" + S + "/" + E : "https://player.cinezo.live/embed/movie/" + t;
+  if(id === "embedsu") return tvShape ? "https://embed.su/embed/tv/" + t + "/" + S + "/" + E : "https://embed.su/embed/movie/" + t;
+  if(id === "autoembed") return tvShape ? "https://autoembed.co/tv/tmdb/" + t + "-" + S + "-" + E : "https://autoembed.co/movie/tmdb/" + t;
+  if(id === "autoembed2") return tvShape ? "https://player.autoembed.cc/embed/tv/" + t + "/" + S + "/" + E : "https://player.autoembed.cc/embed/movie/" + t;
+  if(id === "moviesapi") return tvShape ? "https://moviesapi.club/tv/" + t + "-" + S + "-" + E : "https://moviesapi.club/movie/" + t;
+  if(id === "filmku") return tvShape ? "https://filmku.stream/embed/series?tmdb=" + t + "&sea=" + S + "&epi=" + E : "https://filmku.stream/embed/" + t;
+  if(id === "nontongo") return tvShape ? "https://www.nontongo.win/embed/tv/" + t + "/" + S + "/" + E : "https://www.nontongo.win/embed/movie/" + t;
+  return "";
+}
+function nhdFetchText(url, ms){
+  ms = ms || 15000;
+  function tryFetch(timeoutMs, doFetch){
+    return new Promise(function(resolve, reject){
+      var done = false;
+      var timer = setTimeout(function(){ if(!done){ done = true; reject(new Error("timeout")); } }, timeoutMs);
+      function ok(t){ if(!done){ done = true; clearTimeout(timer); resolve(t); } }
+      function fail(e){ if(!done){ done = true; clearTimeout(timer); reject(e || new Error("fetch")); } }
+      try{ doFetch(ok, fail); }catch(e){ fail(e); }
+    });
+  }
+  function direct(tMs){
+    return tryFetch(tMs, function(ok, fail){
+      fetch(url, { cache:"no-store" }).then(function(r){
+        if(!r.ok) throw new Error("HTTP " + r.status);
+        return r.text();
+      }).then(ok, fail);
+    });
+  }
+  function viaSuper(tMs){
+    return tryFetch(tMs, function(ok, fail){
+      var RR = null;
+      RR = null;
+      if(RR && RR.superFetch) RR.superFetch(url).then(function(r2){
+        var okk = (r2 && (r2.ok === undefined || r2.ok)) && (r2.status === undefined || r2.status < 400);
+        if(!okk) throw new Error("HTTP " + (r2 && r2.status));
+        return r2.text();
+      }).then(ok, fail);
+      else fail(new Error("fetch"));
+    });
+  }
+  var directMs = Math.min(8000, ms);
+  return direct(directMs).catch(function(){ return viaSuper(ms); });
+}
+function tmdbPick(html, title, year, wantTv, strictYear){
+  TMID_KIND = "";
+  var qn = normT(title), y0 = parseInt(year, 10) || 0;
+  var best = null;
+  var re = /data-media-type="(movie|tv)"[^>]*?href="\/(?:movie|tv)\/(\d+)(?:-[^"]*)?"[^>]*?>/g;
+  var m, seen = {};
+  while((m = re.exec(html))){
+    var type = m[1], id = m[2];
+    if(seen[type + id]) continue; seen[type + id] = 1;
+    if(wantTv ? type !== "tv" : (D.type !== "anime" && type !== "movie")) continue;
+    var slice = html.substring(m.index, m.index + 2500);
+    var t2 = /<h2[^>]*><span>([^<]{1,120})<\/span>/.exec(slice);
+    if(!t2) continue;
+    var sc = titleScore(qn, normT(t2[1]));
+    if(sc <= 29) continue;
+    var yd = 99, d2 = /release_date[^"]*">([^<]{0,40})</.exec(slice);
+    if(d2){ var ym = /(\d{4})/.exec(d2[1]); if(ym && y0) yd = Math.abs(parseInt(ym[1], 10) - y0); else if(!y0) yd = 0; }
+    else if(!y0) yd = 0;
+    if(strictYear && y0 && yd > 1) continue;
+    if(!best || sc > best.sc + 5 || (Math.abs(sc - best.sc) <= 5 && yd < best.yd)) best = { sc:sc, yd:yd, id:id, type:type };
+  }
+  if(!best) return "";
+  if(y0 && best.yd > 1 && best.sc < 95) return "";
+  TMID_KIND = best.type || "";
+  return best.id;
+}
+var TMID_KIND = "";
+var TMID_CACHE = {};
+async function tmdbCacheGet(key){
+  if(TMID_CACHE[key]) return TMID_CACHE[key];
+  try{
+    var k = null;
+    if(k){ var v = await k.get(key); if(v){ TMID_CACHE[key] = v; return v; } }
+  }catch(e){}
+  return "";
+}
+async function tmdbCacheSet(key, val){
+  TMID_CACHE[key] = val;
+  try{ var k = null; if(k) await k.set(key, val); }catch(e){}
+}
+// Automatic TMDB id: when Cinemeta/AniList gave us no moviedb_id, resolve one
+// from the title via TMDB's own search page (no API key needed). Cached in kv.
+async function ensureTmdbId(){
+  if(/^\d+$/.test(String(D.tmdb || ""))) return D.tmdb;
+  var key = "tmdb3:" + String(D.id || "");
+  var hit = await tmdbCacheGet(key);
+  if(hit){ var hp = String(hit).split("|"); D.tmdb = hp[0]; D.tmdbKind = hp[1] || ""; return hp[0]; }
+  var raw = ((D.f && D.f.name) || (D.snap && D.snap.title) || P.title || "").replace(/ — S\d+ E\d+$/, "").trim();
+  if(!raw) return "";
+  var year = ((((D.f && D.f.releaseInfo) || "").slice(0, 4) || (D.snap && D.snap.year) || "") + "").slice(0, 4);
+  var qs = [raw];
+  var clean = raw.replace(/\s*\(.*?\)\s*/g, " ").replace(/\s{2,}/g, " ").trim();
+  if(clean && clean !== raw) qs.push(clean);
+  if(year) qs.push(raw + " " + year);
+  var wantTv = !!P.isSeries;
+  for(var i = 0; i < qs.length; i++){
+    pSpin('Finding TMDB id for "' + raw + '"…');
+    var html = "";
+    try{ html = await nhdFetchText("https://www.themoviedb.org/search?query=" + encodeURIComponent(qs[i]), 15000); }catch(e){}
+    if(!html) continue;
+    var id = tmdbPick(html, raw, year, wantTv, true) || tmdbPick(html, raw, year, wantTv, false);
+    if(id){
+      D.tmdb = id; D.tmdbKind = TMID_KIND || "";
+      try{ await tmdbCacheSet(key, id + "|" + (TMID_KIND || "")); }catch(e){}
+      try{ $("#pNote").textContent = "TMDB id found automatically"; }catch(e){}
+      return id;
+    }
+  }
+  return "";
+}
+/* ===== Hindi direct streams (DesiFlix Stremio addon - native files, no mirrors, no ads) ===== */
+/* DesiFlix serves real direct files (mp4/mkv, incl. Hindi-audio releases) via a
+   plain Stremio-protocol JSON API: {base}/stream/{movie|series}/{tt[:S:E]}.json .
+   Resolved fresh on every click (download tokens can expire); playable entries
+   need only s.url. Verified live Oct 2026: byte-range 206 video/* + native
+   <video> loadeddata 1280x534 and advancing currentTime. */
+var DSX_BASE = "https://manifest.desitvhub.eu.org";
+function dsxTitle(){ return (((D.f && D.f.name) || (D.snap && D.snap.title) || P.title || "").replace(/ — S\d+ E\d+$/, "").trim()); }
+async function dsxResolve(){
+  var imdb = s8Imdb();
+  if(!imdb) throw new Error("no imdb");
+  var path = P.isSeries
+    ? "/stream/series/" + imdb + ":" + Math.max(1, P.s || 1) + ":" + Math.max(1, P.e || 1) + ".json"
+    : "/stream/movie/" + imdb + ".json";
+  var j = await s8Fetch(DSX_BASE + path, { headers: { "Accept": "application/json" } }, 20000).then(function(r){ return r.json(); });
+  var out = [];
+  ((j && j.streams) || []).forEach(function(s){
+    if(!s || !s.url || !/^https?:\/\//.test(s.url) || s.ytId) return;
+    out.push(s);
+  });
+  return out;
+}
+function dsxRank(s){
+  var t = (((s && s.title) || "") + " " + ((s && s.name) || "")).toLowerCase();
+  return /hindi/.test(t) ? 0 : 1;
+}
+function dsxSizeMB(s){
+  var t = String((s && s.title) || "") + " " + String(s && s.name || "");
+  var m = /([\d.]+)\s*(GB|MB)/i.exec(t);
+  if(!m) return 1e12;
+  var v = parseFloat(m[1]) || 0;
+  if(/gb/i.test(m[2])) v *= 1024;
+  return v;
+}
+function dsxLabel(s){
+  var lines = String((s && s.title) || (s && s.name) || "Source").split("\n");
+  var t = (lines[0] || "").trim();
+  var audio = "";
+  for(var i = 1; i < lines.length; i++){ if(/audio/i.test(lines[i] || "")){ audio = (lines[i] || "").trim(); break; } }
+  var n = String((s && s.name) || "").split("\n")[0];
+  var lbl = n && t.indexOf(n) !== 0 ? n + " · " + t : t;
+  if(audio) lbl += " · " + audio;
+  return lbl.slice(0, 90);
+}
+async function playDsx(){
+  P.seq = (P.seq || 0) + 1;
+  var my = P.seq;
+  var v = $("#pVideo"), fr = $("#pFrame");
+  stopStream();
+  v.hidden = false; fr.hidden = true;
+  pStatus(null);
+  paintEpNav();
+  try{ setExt(null); }catch(e){}
+  try{
+    var tabs = $("#srvTabs");
+    tabs.querySelectorAll("button").forEach(function(x){ x.classList.remove("on"); });
+    var bb = (P.btnByName || {}).hindi; if(bb) bb.classList.add("on");
+  }catch(e){}
+  try{ DB.srv = "hindi"; DB.save(); }catch(e){}
+  if(!s8Imdb()){ dsxFailed("Hindi direct needs an IMDB id for this title."); return; }
+  pSpin('Finding Hindi direct file for "' + (dsxTitle() || P.title || "this title") + '"…');
+  var streams = [];
+  try{ streams = await dsxResolve(); }
+  catch(e){ if(my !== P.seq) return; dsxFailed("Hindi source is unreachable right now."); return; }
+  if(my !== P.seq) return;
+  streams.sort(function(a, b){ return (dsxRank(a) - dsxRank(b)) || (dsxSizeMB(a) - dsxSizeMB(b)); });
+  if(!streams.length){ dsxFailed("No Hindi direct file found for this title on DesiFlix."); return; }
+  try{ P.dsxOpts = streams; }catch(e){}
+  if(streams.length === 1){ playDsxUrl(streams[0].url, dsxLabel(streams[0])); return; }
+  dsxShowPicker(streams);
+}
+function dsxShowPicker(streams){
+  var h = '<div class="msg">Pick a Hindi source - direct file, no ads:</div><div class="row" style="flex-direction:column;gap:8px;max-height:40vh;overflow:auto">';
+  streams.forEach(function(o, ix){
+    h += '<button class="retry" data-dsxix="' + ix + '">' + esc(dsxLabel(o)) + "</button>";
+  });
+  h += "</div>";
+  pStatus(h);
+  try{ $("#pNote").textContent = "hindi direct - pick a source"; }catch(e){}
+  try{
+    Array.prototype.forEach.call(document.querySelectorAll("#pStatus [data-dsxix]"), function(b){
+      b.addEventListener("click", function(){
+        var o2 = streams[+b.getAttribute("data-dsxix")];
+        if(o2) playDsxUrl(o2.url, dsxLabel(o2));
+      });
+    });
+  }catch(e){}
+}
+function playDsxUrl(link, label){
+  P.seq = (P.seq || 0) + 1;
+  P.direct = true;
+  stopStream();
+  var v = $("#pVideo");
+  v.hidden = false; $("#pFrame").hidden = true;
+  pStatus(null);
+  paintEpNav();
+  try{ $("#pNote").textContent = "Hindi direct · " + (label || "ad-free"); }catch(e){}
+  try{ setExt(link); }catch(e){}
+  pSpin("Loading direct file…");
+  var to = setTimeout(function(){ dsxFailed("Direct file is taking too long.", true); }, 60000);
+  function done(){ clearTimeout(to); pStatus(null); try{ armStallWatch(); }catch(e){} try{ v.play().catch(function(){}); }catch(e){} }
+  function fail(){ clearTimeout(to); dsxFailed("Direct file failed to load.", true); }
+  if(/\.m3u8($|\?)/.test(link)){
+    try{ attachHls(v, link).then(done, fail); }
+    catch(e){ fail(); }
+  } else {
+    v.onloadeddata = done;
+    v.onerror = function(){ if(!v.getAttribute("src")) return; fail(); };
+    try{ v.src = link; v.load(); }catch(e){ fail(); }
+  }
+}
+function dsxFailed(msg, retry){
+  P.direct = false;
+  var h = '<div class="msg">' + esc(msg) + '</div><div class="row">';
+  if(retry && P.dsxOpts && P.dsxOpts.length > 1) h += '<button class="retry" id="pDsxRetry">Try another source</button>';
+  h += '<button class="retry" id="pDsxBack">Back to servers</button></div>';
+  pStatus(h);
+  try{ $("#pNote").textContent = "hindi direct - nothing found"; }catch(e){}
+  try{
+    var rb = $("#pDsxRetry");
+    if(rb) rb.addEventListener("click", function(){ dsxShowPicker(P.dsxOpts); });
+  }catch(e){}
+  try{ $("#pDsxBack").addEventListener("click", function(){ autoChain(); }); }catch(e){}
+}
+
+/* ===== 8Stream direct streams (native HLS files - no mirrors, no ads) ===== */
+/* Protocol from himanshu8443/8StreamApi (mediaInfo -> getStream), re-implemented
+   client-side via superFetch: the public Vercel deployment is bot-walled and the
+   repo is unmaintained, so we talk to the underlying player network directly.
+   Stream host is resolved dynamically from player.js (same as their getPlayerUrl),
+   so domain rotations heal automatically; last-good domain is cached in kv. */
+var S8BASES = ["https://allmovieland.link/player.js?v=60 128"];
+var S8CACHE = { domain:"", info:{} };
+function s8Imdb(){ var id = String(D.id || ""); return /^tt\d+$/.test(id) ? id : ""; }
+function s8Fetch(url, opts, ms){
+  ms = ms || 15000;
+  var RF = null;
+  RF = null;
+  if(!RF) return Promise.reject(new Error("no fetch"));
+  opts = opts || {};
+  return new Promise(function(resolve, reject){
+    var done = false;
+    var timer = setTimeout(function(){ if(!done){ done = true; reject(new Error("timeout")); } }, ms);
+    try{
+      RF(url, opts).then(function(r){ if(!done){ done = true; clearTimeout(timer); resolve(r); } },
+        function(e){ if(!done){ done = true; clearTimeout(timer); reject(e || new Error("fetch")); } });
+    }catch(e){ if(!done){ done = true; clearTimeout(timer); reject(e); } }
+  });
+}
+function S8_PLAY_H(){
+  return {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "DNT": "1",
+    "Upgrade-Insecure-Requests": "1",
+    "Origin": "https://allmovieland.fun/",
+    "Referer": "https://google.com",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0"
+  };
+}
+function S8_FILE_H(key, domain, imdb){
+  return {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+    "Accept": "*/*",
+    "Origin": domain,
+    "X-Csrf-Token": key,
+    "Referer": domain + "/play/" + imdb
+  };
+}
+function S8_STREAM_H(key){
+  return {
+    "Accept": "*/*",
+    "Content-Type": "application/x-www-form-urlencoded",
+    "X-Csrf-Token": key,
+    "Referer": "https://google.com/",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0"
+  };
+}
+async function s8Domain(){
+  if(S8CACHE.domain) return S8CACHE.domain;
+  var kv = null;
+  kv = null;
+  if(kv){
+    try{ var last = await kv.get("domain"); if(last){ S8CACHE.domain = last; return last; } }catch(e){}
+  }
+  for(var i = 0; i < S8BASES.length; i++){
+    try{
+      var t = await s8Fetch(S8BASES[i], null, 15000).then(function(r){ return r.text(); });
+      var m = /AwsIndStreamDomain\s*=\s*'([^']+)'/.exec(t || "");
+      if(m && m[1]){
+        S8CACHE.domain = m[1];
+        try{ if(kv) await kv.set("domain", m[1]); }catch(e){}
+        return m[1];
+      }
+    }catch(e){}
+  }
+  throw new Error("no domain");
+}
+async function s8Info(imdb){
+  var ck = "s8i:" + imdb;
+  if(S8CACHE.info[ck]) return S8CACHE.info[ck];
+  var domain = await s8Domain();
+  var html = "";
+  try{ html = await s8Fetch(domain + "/play/" + imdb, { headers: S8_PLAY_H() }, 20000).then(function(r){ return r.text(); }); }
+  catch(e){ throw new Error("unreachable"); }
+  if(!html || (html.length < 5000 && /404 Not Found|Media not found|Something went wrong/.test(html))) throw new Error("no content");
+  var last = "", m2, re = /<script[^>]*>([\s\S]*?)<\/script>/gi;
+  while((m2 = re.exec(html))){ if(m2[1] && m2[1].length > 10) last = m2[1]; }
+  if(!last) throw new Error("no data");
+  var cands = [];
+  var c1 = /(\{[^;]+}\));/.exec(last);
+  if(c1) cands.push(c1[1]);
+  var c2 = /\((\{.*\})\)/.exec(last);
+  if(c2) cands.push(c2[1]);
+  var data = null;
+  for(var ci = 0; ci < cands.length && !data; ci++){
+    try{ data = JSON.parse(cands[ci]); }catch(e){}
+  }
+  if(!data || !data.file || !data.key) throw new Error("no data");
+  var link = (/^https?:\/\//.test(data.file)) ? data.file : domain + data.file;
+  var pl = null;
+  try{ pl = await s8Fetch(link, { headers: S8_FILE_H(data.key, domain, imdb) }, 20000).then(function(r){ return r.json(); }); }
+  catch(e){ throw new Error("no playlist"); }
+  var playlist = (pl && pl.playlist) ? pl.playlist : pl;
+  if(!playlist) throw new Error("no playlist");
+  var out = { playlist: playlist, key: data.key, domain: domain };
+  S8CACHE.info[ck] = out;
+  return out;
+}
+/* Collect every playable leaf ({title, file, path[]}) from a playlist node,
+   tolerant of movie- vs series-shaped trees. */
+function s8Leaves(node, path, acc){
+  acc = acc || []; path = path || [];
+  if(!node || typeof node !== "object") return acc;
+  if(typeof node.file === "string" && node.file){
+    acc.push({ path: path.slice(), title: String(node.title || ""), file: node.file });
+    return acc;
+  }
+  var kids = node.folder || node.children || node.episodes || node.items || node.files;
+  if(Object.prototype.toString.call(kids) === "[object Array]"){
+    for(var i = 0; i < kids.length; i++){
+      var k = kids[i];
+      s8Leaves(k, path.concat([k && k.title ? String(k.title) : ""]), acc);
+    }
+    return acc;
+  }
+  if(Object.prototype.toString.call(node) === "[object Array]"){
+    for(var j = 0; j < node.length; j++){
+      var n2 = node[j];
+      s8Leaves(n2, path.concat([n2 && n2.title ? String(n2.title) : ""]), acc);
+    }
+  }
+  return acc;
+}
+function s8HasNum(pathArr, kind, n){
+  var re = kind === "s" ? /season[^0-9]*0*(\d+)/i : /(?:episode|ep(?!s)|e)[^0-9a-z]*0*(\d+)/i;
+  for(var i = 0; i < pathArr.length; i++){
+    var m = re.exec(String(pathArr[i] || ""));
+    if(m && parseInt(m[1], 10) === n) return true;
+  }
+  return false;
+}
+function s8LangRank(L){
+  var s = (L.title + " " + L.path.join(" ")).toLowerCase();
+  if(/hindi/.test(s)) return 0;
+  if(/english|\beng\b/.test(s)) return 1;
+  return 2;
+}
+async function s8Stream(fileTok, key, domain){
+  var path = String(fileTok).slice(1) + ".txt";  var t = "";
+  try{ t = await s8Fetch(domain + "/playlist/" + path, { headers: S8_STREAM_H(key) }, 20000).then(function(r){ return r.text(); }); }
+  catch(e){ throw new Error("no link"); }
+  var m = /https?:\/\/[^\s"']+?\.m3u8[^\s"']*/.exec(t || "");
+  if(m) return m[0];
+  try{
+    var j = JSON.parse(t);
+    if(j && j.data && j.data.link) return j.data.link;
+    if(typeof j === "string" && /^https?:\/\//.test(j)) return j;
+  }catch(e){}
+  if(/^https?:\/\//.test((t || "").trim())) return t.trim();
+  throw new Error("no link");
+}
+async function playS8(){
+  P.seq = (P.seq || 0) + 1;
+  var my = P.seq;
+  var v = $("#pVideo"), fr = $("#pFrame");
+  stopStream();
+  v.hidden = false; fr.hidden = true;
+  pStatus(null);
+  paintEpNav();
+  try{ setExt(null); }catch(e){}
+  try{
+    var tabs = $("#srvTabs");
+    tabs.querySelectorAll("button").forEach(function(x){ x.classList.remove("on"); });
+    var bb = (P.btnByName || {}).s8; if(bb) bb.classList.add("on");
+  }catch(e){}
+  try{ DB.srv = "s8"; DB.save(); }catch(e){}
+  var imdb = s8Imdb();
+  if(!imdb){ s8Failed("8Stream needs an IMDB id for this title."); return; }
+  pSpin('Contacting 8Stream for "' + (P.title || imdb) + '"…');
+  var info = null;
+  try{ info = await s8Info(imdb); }
+  catch(e){ if(my !== P.seq) return; s8Failed("8Stream is unreachable for this title right now."); return; }
+  if(my !== P.seq) return;
+  var leaves = s8Leaves({ folder: info.playlist }, [], []);
+  if(!leaves.length){ s8Failed("8Stream returned no playable files for this title."); return; }
+  var cands = leaves;
+  if(P.isSeries){
+    var se = leaves.filter(function(L){ return s8HasNum(L.path, "s", Math.max(1, P.s || 1)) && s8HasNum(L.path, "e", Math.max(1, P.e || 1)); });
+    if(se.length) cands = se;
+    else {
+      var sn = leaves.filter(function(L){ return s8HasNum(L.path, "s", Math.max(1, P.s || 1)); });
+      var pool = sn.length ? sn : leaves;
+      var en = pool.filter(function(L){ return s8HasNum(L.path, "e", Math.max(1, P.e || 1)); });
+      cands = en.length ? en : pool;
+    }
+  }
+  var seen = {}, opts = [];
+  cands.forEach(function(L){
+    if(seen[L.file]) return; seen[L.file] = 1;
+    opts.push(L);
+  });
+  opts.sort(function(a, b){ return s8LangRank(a) - s8LangRank(b); });
+  if(!opts.length){ s8Failed("8Stream returned no playable files for this title."); return; }
+  if(opts.length === 1){ s8ResolvePlay(info, opts[0], my); return; }
+  var h = '<div class="msg">Pick an 8Stream source - direct file, no ads:</div><div class="row" style="flex-direction:column;gap:8px;max-height:40vh;overflow:auto">';
+  opts.forEach(function(o, ix){
+    var lbl = (o.title || o.path.filter(Boolean).join(" / ") || "Source") + "";
+    h += '<button class="retry" data-s8ix="' + ix + '">' + esc(lbl.slice(0, 70)) + "</button>";
+  });
+  h += "</div>";
+  pStatus(h);
+  try{ $("#pNote").textContent = "8stream - pick a source"; }catch(e){}
+  try{
+    Array.prototype.forEach.call(document.querySelectorAll("#pStatus [data-s8ix]"), function(b){
+      b.addEventListener("click", function(){
+        var o2 = opts[+b.getAttribute("data-s8ix")];
+        if(o2) s8ResolvePlay(info, o2, P.seq);
+      });
+    });
+  }catch(e){}
+}
+async function s8ResolvePlay(info, opt, my){
+  pSpin("Resolving direct stream…");
+  var link = "";
+  try{ link = await s8Stream(opt.file, info.key, info.domain); }
+  catch(e){ if(my !== P.seq) return; s8Failed("8Stream gave no playable link for this source."); return; }
+  if(my !== P.seq) return;
+  playS8Url(link, opt.title || "direct file");
+}
+function playS8Url(link, label){
+  P.seq = (P.seq || 0) + 1;
+  P.direct = true;
+  stopStream();
+  var v = $("#pVideo");
+  v.hidden = false; $("#pFrame").hidden = true;
+  pStatus(null);
+  paintEpNav();
+  try{ $("#pNote").textContent = "8Stream direct · " + (label || "ad-free"); }catch(e){}
+  try{ setExt(link); }catch(e){}
+  pSpin("Loading direct stream…");
+  var to = setTimeout(function(){ s8Failed("Direct stream is taking too long."); }, 60000);
+  function done(){ clearTimeout(to); pStatus(null); try{ armStallWatch(); }catch(e){} try{ v.play().catch(function(){}); }catch(e){} }
+  function fail(){ clearTimeout(to); s8Failed("Direct stream failed to load."); }
+  if(/\.m3u8($|\?)/.test(link)){
+    try{ attachHls(v, link).then(done, fail); }
+    catch(e){ fail(); }
+  } else {
+    v.onloadeddata = done;
+    v.onerror = function(){ if(!v.getAttribute("src")) return; fail(); };
+    try{ v.src = link; v.load(); }catch(e){ fail(); }
+  }
+}
+function s8Failed(msg){
+  P.direct = false;
+  pStatus('<div class="msg">' + esc(msg) + ' <span style="opacity:.7">8Stream\'s servers rotate often — try again later or use a mirror below.</span></div><div class="row"><button class="retry" id="pS8Back">Back to servers</button></div>');
+  try{ $("#pNote").textContent = "8stream - nothing playable"; }catch(e){}
+  try{ $("#pS8Back").addEventListener("click", function(){ autoChain(); }); }catch(e){}
+}
+
+function loadRace(url, ms){
+  ms = ms || 12000;
+  var fr = $("#pFrame");
+  return new Promise(function(resolve){
+    var done = false;
+    function ok(){ if(!done){ done = true; clearTimeout(to); try{ fr.removeEventListener("load", ok); }catch(e){} resolve(true); } }
+    var to = setTimeout(function(){ if(!done){ done = true; try{ fr.removeEventListener("load", ok); }catch(e){} resolve(false); } }, ms);
+    fr.src = "about:blank";
+    setTimeout(function(){
+      if(done) return;
+      try{ fr.addEventListener("load", ok); }catch(e){}
+      try{ fr.src = url; }catch(e){ if(!done){ done = true; clearTimeout(to); resolve(false); } }
+    }, 250);
+  });
+}
+function playMirror(id){
+  var m = mirrorById(id);
+  if(!m) return;
+  var src = mirrorSrc(id);
+  if(!src){ toast("This server needs a TMDB id for this title"); return; }
+  P.seq = (P.seq || 0) + 1;
+  stopStream();
+  try{ dropClips(); }catch(e){}
+  var v = $("#pVideo"); v.hidden = true;
+  var fr = $("#pFrame"); fr.hidden = false;
+  pStatus(null);
+  try{
+    var tabs = $("#srvTabs");
+    tabs.querySelectorAll("button").forEach(function(x){ x.classList.remove("on"); });
+    var bb = (P.btnByName || {})[id]; if(bb) bb.classList.add("on");
+  }catch(e){}
+  fr.src = "about:blank";
+  setTimeout(function(){ try{ fr.src = src; }catch(e){} }, 60);
+  P.playingUrl = src;
+  var opened = false;
+  if(m.std){
+    try{ var w = window.open(src, "_blank", "noopener"); if(w) opened = true; }catch(e){}
+  }
+  try{ $("#pNote").textContent = m.label + (m.std ? (opened ? " opened standalone (it blocks iframes)" : " blocks iframes - tap Standalone (popup was blocked?)") : " mirror"); }catch(e){}
+  try{ setExt(src); }catch(e){}
+  try{ mirrorWatch(); }catch(e){}
+}
+async function autoChain(){
+  P.seq = (P.seq || 0) + 1;
+  var my = P.seq;
+  var seq = (P.chainOrder || []).filter(function(id){ return mirrorById(id) && !P.dead[id] && mirrorSrc(id); });
+  if(!seq.length) seq = (P.chainOrder || []).filter(function(id){ return mirrorById(id) && mirrorSrc(id); });
+  var v = $("#pVideo"), fr = $("#pFrame");
+  v.hidden = true; fr.hidden = false; pStatus(null);
+  paintEpNav();
+  if(!seq.length){ pSpin("No mirror for this title - try another title."); return; }
+  for(var i = 0; i < seq.length; i++){
+    if(my !== P.seq) return;
+    var m = mirrorById(seq[i]);
+    try{ var bb = (P.btnByName || {})[m.id]; var all = $("#srvTabs").querySelectorAll("button"); all.forEach(function(x){ x.classList.remove("on"); }); if(bb) bb.classList.add("on"); }catch(e){}
+    pSpin("Trying " + m.label + " (" + (i + 1) + "/" + seq.length + ") - tap any server to take over");
+    var ok = false;
+    try{ ok = await loadRace(mirrorSrc(m.id), m.timeout || 12000); }catch(e){ ok = false; }
+    if(my !== P.seq) return;
+    if(ok){
+      pStatus(null);
+      P.playingUrl = mirrorSrc(m.id);
+      try{ $("#pNote").textContent = m.label + (m.std ? " loaded - if it demands no-sandbox/its domain, tap Standalone" : " loaded - if no video starts, tap Next server"); }catch(e){}
+      try{ setExt(mirrorSrc(m.id)); }catch(e){}
+      try{ mirrorWatch(); }catch(e){}
+      return;
+    }
+    P.dead[m.id] = 1;
+  }
+  if(my !== P.seq) return;
+  try{ $("#pNote").textContent = "all mirrors timed out"; }catch(e){}
+  pStatus("<div class='msg'>No mirror loaded - every server timed out. Your network may block them, or they are down right now.</div><div class='row'><button class='retry' id='pChainRetry'>Retry chain</button></div>");
+  try{ $("#pChainRetry").addEventListener("click", function(){ P.dead = {}; autoChain(); }); }catch(e){}
+}
+function nextServer(){
+  var order = P.chainOrder || [];
+  if(!order.length) return;
+  var tabOrder = [];
+  order.forEach(function(nm){ if((P.btnByName || {})[nm]) tabOrder.push(nm); });
+  if(!tabOrder.length) return;
+  var btns = Array.prototype.slice.call(document.querySelectorAll("#srvTabs button"));
+  var cur = -1;
+  btns.forEach(function(b){ if(b.classList.contains("on")){ var keys = Object.keys(P.btnByName || {}); for(var i = 0; i < keys.length; i++){ if(P.btnByName[keys[i]] === b){ cur = tabOrder.indexOf(keys[i]); break; } } } });
+  var nx = tabOrder[(cur + 1 + tabOrder.length) % tabOrder.length];
+  var b2 = (P.btnByName || {})[nx];
+  if(b2) b2.click();
+}
+async function paintPlayer(){
+  $("#pTitle").textContent = P.title;
+  var tabs = $("#srvTabs");
+  tabs.innerHTML = "";
+  P.btnByName = {}; P.dead = {}; P.direct = false;
+  var v = $("#pVideo"), fr = $("#pFrame");
+  stopStream();
+  try{ dropClips(); }catch(e){}
+  fr.src = "about:blank";
+  clearTimeout(P.cd); skipUsed = false; hideResume(); var _nx = $("#pNextUp"); if(_nx) _nx.hidden = true;
+  if(P.trailer){
+    v.hidden = true; fr.hidden = false; pStatus(null);
+    fr.src = "https://www.youtube-nocookie.com/embed/" + P.trailer + "?rel=0";
+    paintEpNav();
+    return;
+  }
+  v.hidden = true; fr.hidden = false; pStatus(null);
+  var order = MIRRORS.map(function(m){ return m.id; });
+  try{ if(typeof DB.srv === "string" && DB.srv && order.indexOf(DB.srv) >= 0) order = [DB.srv].concat(order.filter(function(x){ return x !== DB.srv; })); }catch(e){}
+  order.forEach(function(id){
+    var m = mirrorById(id);
+    var b = document.createElement("button");
+    b.className = "srv";
+    b.textContent = m.label;
+    b.title = m.tip;
+    b.addEventListener("click", function(){
+      P.seq = (P.seq || 0) + 1;
+      try{ DB.srv = id; DB.save(); }catch(e){}
+      try{ tabs.querySelectorAll("button").forEach(function(x){ x.classList.toggle("on", x === b); }); }catch(e){}
+      playMirror(id);
+    });
+    try{ P.btnByName[id] = b; }catch(e){}
+    tabs.appendChild(b);
+  });
+    if(s8Imdb()){
+    (function(){
+      var hb = document.createElement("button");
+      hb.className = "srv";
+      hb.textContent = "Hindi";
+      hb.title = "Hindi direct file (DesiFlix) - native player, no mirrors, no ads";
+      hb.addEventListener("click", function(){
+        P.seq = (P.seq || 0) + 1;
+        try{ DB.srv = "hindi"; DB.save(); }catch(e){}
+        try{ tabs.querySelectorAll("button").forEach(function(x){ x.classList.toggle("on", x === hb); }); }catch(e){}
+        playDsx();
+      });
+      try{ P.btnByName.hindi = hb; }catch(e){}
+      tabs.appendChild(hb);
+    })();
+  }
+  if(s8Imdb()){
+    (function(){
+      var sb = document.createElement("button");
+      sb.className = "srv";
+      sb.textContent = "8Stream";
+      sb.title = "8Stream direct file (Hindi + more) - native player, no mirrors, no ads";
+      sb.addEventListener("click", function(){
+        P.seq = (P.seq || 0) + 1;
+        try{ DB.srv = "s8"; DB.save(); }catch(e){}
+        try{ tabs.querySelectorAll("button").forEach(function(x){ x.classList.toggle("on", x === sb); }); }catch(e){}
+        playS8();
+      });
+      try{ P.btnByName.s8 = sb; }catch(e){}
+      tabs.appendChild(sb);
+    })();
+  }
+P.chainOrder = order.slice();
+  paintEpNav();
+  try{ setExt(null); }catch(e){}
+  if(!/^\d+$/.test(String(D.tmdb || ""))){
+    pSpin("Finding TMDB id for this title…");
+    var _my = P.seq || 0, _found = "";
+    try{ _found = await ensureTmdbId(); }catch(e){}
+    if(((P.seq || 0) !== _my) || $("#pback").hidden) return;
+    if(!_found){
+      pStatus('<div class="msg">No playable stream for this title here (needs a TMDB id) - try another title.</div>');
+      try{ $("#pNote").textContent = "no source for this title"; }catch(e){}
+      return;
+    }
+    pStatus(null);
+  }
+  var first = tabs.querySelector("button");
+  if(first) setTimeout(function(){ try{ first.classList.add("on"); }catch(e){} }, 350);
+  autoChain();
+}
+function dropClips(){
+  try{
+    if(P.clips) Object.keys(P.clips.urls || {}).forEach(function(k){ URL.revokeObjectURL(P.clips.urls[k]); });
+  }catch(e){}
+  P.clips = null;
+}
+function mirrorWatch(){
+  var my = (P.mw = (P.mw || 0) + 1), fr = $("#pFrame");
+  var t = setTimeout(function(){
+    if(P.mw !== my || fr.hidden || !fr.src || fr.src === "about:blank") return;
+    var btns = Array.prototype.slice.call(document.querySelectorAll("#srvTabs button"));
+    var ix = -1;
+    btns.forEach(function(b, i){ if(b.classList.contains("on")) ix = i; });
+    var nx = btns[ix + 1] || btns[0];
+    try{ if(nx){ nx.classList.add("pulse"); setTimeout(function(){ nx.classList.remove("pulse"); }, 12000); } }catch(e){}
+    toast("Still loading — this mirror may be slow" + (nx ? ", try " + nx.textContent + " next" : ", try another server"));
+  }, 18000);
+  var cl = function(){ clearTimeout(t); try{ fr.removeEventListener("load", cl); }catch(e){} };
+  try{ fr.addEventListener("load", cl); }catch(e){}
+}
+function setExt(url){
+  try{
+    var b = $("#pStandalone");
+    if(url){ b.dataset.url = url; b.disabled = false; }
+    else { b.dataset.url = ""; b.disabled = true; }
+  }catch(e){}
+}
+function paintEpNav(){
+  var nav = $("#pEpNav");
+  if(P.isSeries && D.seasons && !P.trailer){
+    nav.hidden = false;
+    var eps = D.seasons[P.s] || [];
+    var nums = eps.map(function(x){ return x.number; }).sort(function(a, b){ return a - b; });
+    var ix = nums.indexOf(P.e);
+    $("#pPrev").disabled = ix <= 0;
+    $("#pNext").disabled = ix < 0 || ix >= nums.length - 1;
+    $("#pPrev").onclick = function(){ if(ix > 0){ P.e = nums[ix - 1]; D.ep = P.e; afterEpStep(); } };
+    $("#pNext").onclick = function(){ if(ix >= 0 && ix < nums.length - 1){ P.e = nums[ix + 1]; D.ep = P.e; afterEpStep(); } };
+  } else nav.hidden = true;
+}
+function afterEpStep(){
+  P.title = (D.f && D.f.name || "") + " — S" + P.s + " E" + P.e;
+  P.excl = [];
+  DB.touchCont({ id:D.id, type:"series", title:(D.f && D.f.name || ""), poster:(D.f && D.f.poster || ""), year:"", rating:"", tmdb:(D.f && D.f.moviedb_id) || "", s:P.s, e:P.e });
+  paintPlayer();
+}
+function closePlayer(){
+  P.seq = (P.seq || 0) + 1;
+  stopStream();
+  try{ dropClips(); }catch(e){}
+  var fr = $("#pFrame");
+  fr.src = "about:blank"; fr.hidden = true;
+  clearTimeout(P.cd); skipUsed = false; hideResume(); var _nx2 = $("#pNextUp"); if(_nx2) _nx2.hidden = true; var _sk = $("#pSkip"); if(_sk) _sk.hidden = true; var _mf1 = $("#pMF"); if(_mf1) _mf1.hidden = true; var _tm1 = $("#pTMDB"); if(_tm1) _tm1.hidden = true;
+  $("#pVideo").hidden = false;
+  P.trailer = "";
+  try{ setExt(null); }catch(e){} P.playingUrl = "";
+  $("#pback").hidden = true;
+  document.body.style.overflow = "";
+}
+$("#pClose").addEventListener("click", closePlayer);
+if(!$("#pNextSrv")._w){ $("#pNextSrv")._w = 1; $("#pNextSrv").addEventListener("click", function(){ nextServer(); }); }
+$("#pTheater").addEventListener("click", function(){
+  var sh = document.querySelector(".pShell");
+  sh.classList.toggle("wide");
+  $("#pTheater").textContent = sh.classList.contains("wide") ? "▣ Normal" : "▣ Theater";
+});
+$("#pStandalone").addEventListener("click", function(){
+  var u = "";
+  try{ u = $("#pStandalone").dataset.url || P.playingUrl || ""; }catch(e){}
+  if(!u){ toast("Pick a server first"); return; }
+  try{ var w = window.open(u, "_blank", "noopener"); if(!w) toast("Popup blocked - allow popups for this site"); }catch(e){ toast("Popup blocked - allow popups for this site"); }
+});
+$("#pShare").addEventListener("click", function(){
+  var u = window.location.origin + window.location.pathname + "?watch=" + D.id + "&type=" + D.type + (P.isSeries ? "&s=" + P.s + "&e=" + P.e : "");
+  function done(){ toast("Share link copied"); }
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(done, function(){ toast(u); });
+  else toast(u);
+});
+
+function posKey(){ return P.tid + "|" + (P.isSeries ? ("s" + P.s + "e" + P.e) : "m"); }
+function getPos(){ try{ return DB.pos[posKey()] || null; }catch(e){ return null; } }
+function fmtT(s){ s = Math.max(0, Math.floor(s || 0)); var m = Math.floor(s / 60), h = Math.floor(m / 60); function p2(n){ return String(n).padStart(2, "0"); } return h ? h + ":" + p2(m % 60) + ":" + p2(s % 60) : m + ":" + p2(s % 60); }
+var posSaveT = 0, skipUsed = false;
+function savePos(t, d){
+  if(!P.tid || P.trailer || P.clips || !d || t < 5) return;
+  var k = posKey();
+  if(t > d - 25){ try{ delete DB.pos[k]; }catch(e){} }
+  else DB.pos[k] = { t:Math.floor(t), d:Math.floor(d), at:Date.now() };
+  var frac = t / d;
+  try{ DB.cont.forEach(function(c){ if(c.id === P.tid) c.p = frac; }); }catch(e){}
+  DB.save();
+}
+function hideResume(){ var b = $("#pResume"); if(b) b.hidden = true; }
+function armStallWatch(){
+  disarmStallWatch();
+  var v = $("#pVideo");
+  var lastT = -1, badFor = 0, started = false;
+  function onPlaying(){ started = true; }
+  v.addEventListener("playing", onPlaying);
+  P.stallTimer = setInterval(function(){
+    if($("#pback").hidden || !started || P.trailer) return;
+    try{
+      if(v.paused || v.ended || v.seeking || v.readyState >= 3){ lastT = v.currentTime; badFor = 0; return; }
+      if(v.currentTime === lastT) badFor += 3; else { badFor = 0; lastT = v.currentTime; }
+      if(badFor >= 20){
+        disarmStallWatch();
+        if(P.direct){ toast("Direct stream stalled - check your connection"); return; }
+        if(P.prov){ P.excl.push(P.prov); P.prov = ""; }
+        toast("Stream stalled — switching source");
+        paintPlayer();
+      }
+    }catch(e){}
+  }, 3000);
+  P.stallUnsub = function(){ v.removeEventListener("playing", onPlaying); };
+}
+function disarmStallWatch(){
+  try{ if(P.stallTimer){ clearInterval(P.stallTimer); P.stallTimer = null; } }catch(e){}
+  try{ if(P.stallUnsub){ P.stallUnsub(); P.stallUnsub = null; } }catch(e){}
+}
+function maybeResume(){
+  hideResume();
+  if(P.trailer || P.clips) return;
+  var p = getPos(), v = $("#pVideo");
+  if(!p || !p.d || p.t < 10 || p.t > p.d - 25) return;
+  $("#pResumeTxt").textContent = "Resume from " + fmtT(p.t) + " of " + fmtT(p.d) + "?";
+  $("#pResume").hidden = false;
+  $("#pResumeGo").onclick = function(){ try{ v.currentTime = p.t; v.play().catch(function(){}); }catch(e){} hideResume(); };
+  $("#pResumeNo").onclick = function(){ try{ v.currentTime = 0; }catch(e){} hideResume(); };
+}
+function onEnded(){
+  if(P.trailer || $("#pback").hidden) return;
+  try{ delete DB.pos[posKey()]; }catch(e){}
+  try{ DB.cont.forEach(function(c){ if(c.id === P.tid) c.p = 1; }); }catch(e){}
+  DB.save();
+  if(!P.isSeries || !D.seasons) return;
+  var eps = D.seasons[P.s] || [];
+  var nums = eps.map(function(x){ return x.number; }).sort(function(a, b){ return a - b; });
+  var nx = nums[nums.indexOf(P.e) + 1];
+  if(!nx) return;
+  var box = $("#pNextUp"), n = 10;
+  box.hidden = false;
+  $("#pNextTxt").textContent = "S" + P.s + " E" + nx + " is up next";
+  $("#pNextGo").onclick = function(){ clearTimeout(P.cd); box.hidden = true; P.e = nx; D.ep = nx; afterEpStep(); };
+  $("#pNextCancel").onclick = function(){ clearTimeout(P.cd); box.hidden = true; };
+  (function tick(){
+    if(box.hidden) return;
+    $("#pNextN").textContent = n;
+    var bar = $("#pNextBar"); if(bar) bar.style.width = (n * 10) + "%";
+    if(n <= 0){ box.hidden = true; P.e = nx; D.ep = nx; afterEpStep(); return; }
+    n--; P.cd = setTimeout(tick, 1000);
+  })();
+}
+function nhdPageUrlFor(s, e){
+  var k = nhdKind(), id = encodeURIComponent(nhdId());
+  if(k === "movie") return "https://nhdapi.com/movie/" + id;
+  if(k === "anime") return "https://nhdapi.com/anime/" + id + "/" + Math.max(1, e || 1);
+  return "https://nhdapi.com/tv/" + id + "/" + Math.max(1, s || 1) + "/" + Math.max(1, e || 1);
+}
+function warmPage(){ return; } function warmPageOld(){ if(false){ try{ var url = "", id = encodeURIComponent(D.tmdb || ""); if(!id) return; if(D.type === "movie") url = "https://nhdapi.com/movie/" + id; else if(D.type === "series" && D.seasons) url = "https://nhdapi.com/tv/" + id + "/" + Math.max(1, D.season || 1) + "/" + Math.max(1, D.ep || 1); else return; var ce = NHD_PAGE_CACHE[url]; if(ce && Date.now() - ce.at < 30 * 60 * 1000) return; nhdFetchText(url, 15000).then(function(html){ var key = (html.match(/var API_KEY = "([^"]+)"/) || [])[1] || ""; var path = (html.match(/var API_PATH = "([^"]+)"/) || [])[1] || ""; if(!path) return; var tpath = (html.match(/var TORRENT_API_PATH = "([^"]+)"/) || [])[1] || ""; var tkey = (html.match(/var TORRENT_API_KEY = "([^"]+)"/) || [])[1] || ""; NHD_PAGE_CACHE[url] = { key:key, path:path, at:Date.now(), tpath:tpath, tkey:tkey }; }).catch(function(){}); }catch(e){} } }
+function prefetchNext(){ return; } function prefetchNextOld(){ if(false){
+  try{
+    if(!P.isSeries || !D.seasons || P.trailer) return;
+    var eps = D.seasons[P.s] || [];
+    var nums = eps.map(function(x){ return x.number; }).sort(function(a, b){ return a - b; });
+    var nx = nums[nums.indexOf(P.e) + 1];
+    if(!nx) return;
+    var url = nhdPageUrlFor(P.s, nx);
+    if(NHD_PAGE_CACHE[url]) return;
+    nhdFetchText(url, 15000).then(function(html){
+      var key = (html.match(/var API_KEY = "([^"]+)"/) || [])[1] || "";
+      var path = (html.match(/var API_PATH = "([^"]+)"/) || [])[1] || "";
+      if(path) NHD_PAGE_CACHE[url] = { key:key, path:path, at:Date.now() };
+    }).catch(function(){});
+  }catch(e){}
+} }
+function armRail(r){
+  if(r._armed) return; r._armed = 1;
+  try{
+    var w = document.createElement("div"); w.className = "railWrap";
+    r.parentNode.insertBefore(w, r); w.appendChild(r);
+    var l = document.createElement("button"); l.className = "railBtn l"; l.textContent = "<"; l.setAttribute("aria-label", "Scroll left");
+    var n = document.createElement("button"); n.className = "railBtn r"; n.textContent = ">"; n.setAttribute("aria-label", "Scroll right");
+    l.addEventListener("click", function(){ r.scrollBy({ left:-r.clientWidth * 0.85, behavior:"smooth" }); });
+    n.addEventListener("click", function(){ r.scrollBy({ left:r.clientWidth * 0.85, behavior:"smooth" }); });
+    w.appendChild(l); w.appendChild(n);
+  }catch(e){}
+}
+try{
+  document.querySelectorAll(".rail").forEach(armRail);
+  if(window.MutationObserver){
+    new MutationObserver(function(muts){
+      muts.forEach(function(mu){
+        mu.addedNodes.forEach(function(nd){
+          if(nd && nd.querySelectorAll) nd.querySelectorAll(".rail").forEach(armRail);
+        });
+      });
+    }).observe(document.body, { childList:true, subtree:true });
+  }
+}catch(e){}
+(function(){
+  var v = $("#pVideo");
+  v.addEventListener("timeupdate", function(){
+    if($("#pback").hidden || P.trailer || !v.duration) return;
+    if(Date.now() - posSaveT > 5000){ posSaveT = Date.now(); savePos(v.currentTime, v.duration); }
+    var b = $("#pSkip");
+    if(b){ var t = v.currentTime || 0; b.hidden = skipUsed || !(t > 4 && t < 480); }
+  });
+  v.addEventListener("pause", function(){ if(!$("#pback").hidden && v.duration) savePos(v.currentTime, v.duration); });
+  v.addEventListener("ended", onEnded);
+  $("#pSkip").addEventListener("click", function(){
+    try{ v.currentTime = Math.min((v.duration || 1e9) - 5, v.currentTime + 85); }catch(e){}
+    skipUsed = true; $("#pSkip").hidden = true;
+  });
+})();
+$("#heroList").addEventListener("click", function(){
+  var m = heroItems[heroIdx]; if(!m) return;
+  DB.toggle(m.id, m.type, { title:m.name, poster:m.poster || m.background, year:(m.releaseInfo || "").slice(0, 4), rating:m.imdbRating || "" });
+  $("#heroList").textContent = DB.inList(m.id) ? "In List" : "+ List";
+  toast(DB.inList(m.id) ? "Added to My List" : "Removed from My List");
+});
+document.addEventListener("keydown", function(e){
+  if(e.key === "/" && $("#pback").hidden && $("#dback").hidden){
+    var t = (document.activeElement || {}).tagName || "";
+    if(!/INPUT|TEXTAREA|SELECT/.test(t)){ e.preventDefault(); $("#searchInput").focus(); }
+  }
+});
+
+var STICKERS = {
+  popcorn:"https://user.uploads.dev/file/274fb2ab17140dcc2aea82ea648f3a2b.jpg",
+  clapper:"https://user.uploads.dev/file/3f944a5f75f4bbadd391526d2ea8bde0.jpg",
+  starstruck:"https://user.uploads.dev/file/ff88d58c7e569fafdea4b2063fd01005.jpg",
+  lol:"https://user.uploads.dev/file/ae13dc95665b1228250e3b92bad77716.jpg",
+  lit:"https://user.uploads.dev/file/eecbfc3a4f160cdcb8088a40b15e0285.jpg",
+  heartpop:"https://user.uploads.dev/file/4e491352bc3c227f92fde5d1205236a5.jpg",
+  uwu:"https://user.uploads.dev/file/25d305f39da8534779f277cf62b2697c.jpg",
+  cry:"https://user.uploads.dev/file/0e19a469e7ef292258c10e597aac2329.jpg",
+  rage:"https://user.uploads.dev/file/2109cc4250ed7571a2ba541bff730db5.jpg",
+  gg:"https://user.uploads.dev/file/1cd9efafb89018038f789bfcdf699514.jpg",
+  hype:"https://user.uploads.dev/file/02bfc0348daac21c87e355dd2fa26761.jpg",
+  sleepy:"https://user.uploads.dev/file/9ff9ca402391f4d5b0868bcd9dc3889b.jpg",
+  soda:"https://user.uploads.dev/file/327b35f0d48b673c56b79a61133b7ae4.jpg",
+  ghost:"https://user.uploads.dev/file/5e09c9ab7a0d744657a2a66585b4b9d1.jpg"
+};
+var comInst = {};
+
+/* ===== Standalone FlixNova chat ===== */
+var FIREBASE_CONFIG = {
+  apiKey: "REPLACE_ME",
+  authDomain: "REPLACE_ME.firebaseapp.com",
+  databaseURL: "https://REPLACE_ME-default-rtdb.firebaseio.com",
+  projectId: "REPLACE_ME",
+  storageBucket: "REPLACE_ME.appspot.com",
+  messagingSenderId: "REPLACE_ME",
+  appId: "REPLACE_ME"
+};
+var FB = { app:null, db:null, dbmod:null, auth:null, ready:false, loading:null, seen:{} };
+var CHAT_MAX = 200;
+function chatKey(channel){ return "flixchat_v2_" + String(channel).replace(/[^a-zA-Z0-9_-]/g,"_"); }
+function chatUser(){
+  var p = curProfile();
+  return { name:(p && p.name) || "Guest", av:(p && p.av) || "🦊", co:(p && p.co) || "#e3b341" };
+}
+function chatLoad(channel){
+  try{ return JSON.parse(localStorage.getItem(chatKey(channel)) || "[]"); }catch(e){ return []; }
+}
+function chatSave(channel, arr){
+  try{ localStorage.setItem(chatKey(channel), JSON.stringify(arr.slice(-CHAT_MAX))); }catch(e){}
+}
+function chatFirebaseEnabled(){ return FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey !== "REPLACE_ME"; }
+async function chatEnsureFirebase(){
+  if(!chatFirebaseEnabled()) return false;
+  if(FB.ready) return true;
+  if(FB.loading) return FB.loading;
+  FB.loading = (async function(){
+    try{
+      var appmod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+      var authmod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+      var dbmod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js");
+      FB.app = appmod.initializeApp(FIREBASE_CONFIG);
+      FB.auth = authmod.getAuth(FB.app); FB.dbmod = dbmod; FB.db = dbmod.getDatabase(FB.app);
+      await authmod.signInAnonymously(FB.auth);
+      FB.ready = true; return true;
+    }catch(e){ console.warn("Firebase chat unavailable",e); return false; }
+  })();
+  return FB.loading;
+}
+function chatRenderText(text){
+  var safe = esc(text);
+  Object.keys(STICKERS).forEach(function(k){
+    safe = safe.replace(new RegExp("(" + k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&") + ")", "g"), function(){ return arguments[0]; });
+  });
+  safe = safe.replace(/:([a-z0-9_]+):/gi, function(_,k){
+    if(STICKERS[k]) return '<img class="chatSticker" src="' + STICKERS[k] + '" alt=":' + esc(k) + ':" loading="lazy">';
+    if(k === "shrug") return '<span class="chatKmo">¯\_(ツ)_/¯</span>';
+    if(k === "flip") return '<span class="chatKmo">(╯°□°)╯︵ ┻━┻</span>';
+    if(k === "lenny") return '<span class="chatKmo">( ͡° ͜ʖ ͡°)</span>';
+    return ":" + esc(k) + ":";
+  });
+  safe = safe.replace(/\|\|(.+?)\|\|/g, '<span class="chatSpoiler" tabindex="0">$1</span>');
+  return safe;
+}
+function chatScroll(box){ try{ box.scrollTop = box.scrollHeight; }catch(e){} }
+function chatRender(channel, host){
+  if(!host) return;
+  var old = host.querySelector(".standaloneChatMessages");
+  if(old) old.remove();
+  var list = document.createElement("div"); list.className="standaloneChatMessages";
+  var msgs = chatLoad(channel);
+  msgs.forEach(function(m){ chatAppendMessage(list,m); });
+  host.insertBefore(list, host.querySelector(".standaloneChatComposer"));
+  chatScroll(list);
+}
+function chatAppendMessage(list,m){
+  var row=document.createElement("div"); row.className="chatMsg";
+  var av=document.createElement("div"); av.className="chatAvatar"; av.style.background=m.co||"#333"; av.textContent=m.av||"🦊";
+  var body=document.createElement("div"); body.className="chatMsgBody";
+  var head=document.createElement("div"); head.className="chatMsgHead";
+  var name=document.createElement("b"); name.textContent=m.name||"Guest"; name.style.color=m.co||"var(--text)";
+  var time=document.createElement("time"); time.textContent=new Date(m.ts||Date.now()).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+  head.append(name,time);
+  var text=document.createElement("div"); text.className="chatMsgText"; text.innerHTML=chatRenderText(m.text||"");
+  body.append(head,text); row.append(av,body); list.appendChild(row);
+  text.querySelectorAll(".chatSpoiler").forEach(function(s){ s.addEventListener("click",function(){s.classList.toggle("revealed");}); });
+}
+async function chatSend(channel,text){
+  text=String(text||"").trim(); if(!text) return;
+  var u=chatUser(), msg={id:"m"+Date.now().toString(36)+Math.random().toString(36).slice(2,7),name:u.name,av:u.av,co:u.co,text:text,ts:Date.now()};
+  var arr=chatLoad(channel); arr.push(msg); chatSave(channel,arr);
+  var c=comInst[channel]; if(c) chatAppendMessage(c.msgs,msg),chatScroll(c.msgs);
+  if(await chatEnsureFirebase()){
+    try{ var path=FB.dbmod.ref(FB.db,"chats/"+channel); await FB.dbmod.push(path,msg); }catch(e){ console.warn(e); }
+  }
+}
+function chatBindFirebase(channel,c){
+  chatEnsureFirebase().then(function(ok){
+    if(!ok || c._fbBound) return; c._fbBound=true;
+    try{
+      var ref=FB.dbmod.ref(FB.db,"chats/"+channel);
+      var q=FB.dbmod.query(ref,FB.dbmod.orderByChild("ts"),FB.dbmod.limitToLast(100));
+      FB.dbmod.onChildAdded(q,function(s){
+        var m=s.val(); if(!m) return;
+        var arr=chatLoad(channel), key=String(m.id||s.key);
+        if(arr.some(function(x){return String(x.id)===key;})) return;
+        arr.push(m); arr=arr.slice(-CHAT_MAX); chatSave(channel,arr);
+        if(c.msgs){ chatAppendMessage(c.msgs,m); chatScroll(c.msgs); }
+      });
+      if(c.badge){ c.badge.textContent="● LIVE SYNC"; c.badge.classList.add("live"); }
+    }catch(e){}
+  });
+}
+function mountComments(el, channel){
+  if(!el) return; el.innerHTML="";
+  var wrap=document.createElement("div"); wrap.className="standaloneChat";
+  var head=document.createElement("div"); head.className="standaloneChatHead";
+  var who=document.createElement("span"); who.innerHTML="Chatting as <b>"+esc(profName())+"</b>";
+  var badge=document.createElement("span"); badge.className="chatBadge"; badge.textContent=chatFirebaseEnabled()?"○ CONNECTING":"○ LOCAL ONLY";
+  head.append(who,badge);
+  var msgs=document.createElement("div"); msgs.className="standaloneChatMessages";
+  chatLoad(channel).forEach(function(m){chatAppendMessage(msgs,m);});
+  var composer=document.createElement("div"); composer.className="standaloneChatComposer";
+  var input=document.createElement("textarea"); input.rows=1; input.maxLength=1000; input.placeholder="Message…  Use ||spoiler|| for spoilers";
+  var send=document.createElement("button"); send.className="btn go"; send.textContent="Send";
+  function sendNow(){var v=input.value.trim(); if(!v)return; input.value=""; chatSend(channel,v);}
+  send.addEventListener("click",sendNow); input.addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendNow();}});
+  composer.append(input,send); wrap.append(head,msgs,composer); el.appendChild(wrap);
+  comInst[channel]={msgs:msgs,input:input,badge:badge};
+  chatBindFirebase(channel,comInst[channel]);
+}
+function chatInsert(channel,text){
+  var c=comInst[channel]; if(c&&c.input){ var v=c.input.value; c.input.value=(v?v+" ":"")+text+" "; c.input.focus(); return; }
+  try{navigator.clipboard.writeText(text);toast(text+" copied");}catch(e){toast(text);}
+}
+function crRoomById(id){ for(var i=0;i<CR_ROOMS.length;i++) if(CR_ROOMS[i].id===id) return CR_ROOMS[i]; return CR_ROOMS[0]; }
+function paintCrRooms(){
+  var wrap = $("#crRooms");
+  if(!wrap || wrap._done) return; wrap._done = 1;
+  var h = document.createElement("div"); h.className = "rh"; h.textContent = "ANIME HUB ROOMS"; wrap.appendChild(h);
+  CR_ROOMS.forEach(function(r){
+    var b = document.createElement("button");
+    b.className = "crRoom" + (r.id === crActive ? " on" : "");
+    b.dataset.room = r.id;
+    b.innerHTML = '<span class="e">' + r.emoji + '</span><span><b>' + r.name + '</b><small>' + r.desc + '</small></span>';
+    b.addEventListener("click", function(){ switchCrRoom(r.id); });
+    wrap.appendChild(b);
+  });
+  var sp = document.createElement("div"); sp.className = "rh"; sp.textContent = "TIPS"; wrap.appendChild(sp);
+  var tip = document.createElement("div"); tip.style.cssText = "font-size:11.5px;color:var(--mut);padding:0 10px 10px;line-height:1.6";
+  tip.innerHTML = "Tap a sticker to drop it in chat.<br>Use <b>||spoiler||</b> for spoilers.";
+  wrap.appendChild(tip);
+}
+function paintCrRoomHead(){
+  var r = crRoomById(crActive);
+  var n = $("#crRoomName"); if(n) n.textContent = r.emoji + " " + r.name;
+  var d = $("#crRoomDesc"); if(d) d.textContent = r.desc;
+  var on = $("#crOnline"); if(on) on.textContent = "● " + (2 + (r.id.length % 5)) + " watching now";
+  var nick = $("#crNick"); if(nick) nick.textContent = profName();
+}
+function switchCrRoom(id){
+  crActive = id;
+  var wrap = $("#crRooms");
+  if(wrap) wrap.querySelectorAll(".crRoom").forEach(function(b){ b.classList.toggle("on", b.dataset.room === id); });
+  paintCrRoomHead();
+  var c = $("#commCtn");
+  if(c){ c.innerHTML = ""; mountComments(c, crRoomById(id).channel); }
+}
+var EMOJIS = ["😂","😭","😍","🔥","👏","💯","😱","🥺"];
+var KAOMOJI = { shrug: 1, flip: 2, lenny: 3 };
+var KAOMOJI_TXT = [null, "¯\_(ツ)_/¯", "(╯°□°)╯︵ ┻━┻", "( ͡° ͜ʖ ͡°)"];
+function appendExtras(rowEl, getChannel){
+  if(!rowEl || rowEl._ex) return; rowEl._ex = 1;
+  EMOJIS.forEach(function(e){
+    var b = document.createElement("button");
+    b.className = "emo"; b.textContent = e; b.title = "tap to insert";
+    b.addEventListener("click", function(){ chatInsert(getChannel(), e); });
+    rowEl.appendChild(b);
+  });
+  Object.keys(KAOMOJI).forEach(function(k){
+    var b = document.createElement("button");
+    b.className = "kmo"; b.textContent = ":" + k + ":"; b.title = KAOMOJI_TXT[KAOMOJI[k]];
+    (function(code){ b.addEventListener("click", function(){ chatInsert(getChannel(), code); }); })(KAOMOJI_TXT[KAOMOJI[k]]);
+    rowEl.appendChild(b);
+  });
+}
+function paintStickers(){
+  var row = $("#stickRow");
+  if(row && !row._done){
+    row._done = 1;
+    Object.keys(STICKERS).forEach(function(k){
+      var im = document.createElement("img");
+      im.src = STICKERS[k]; im.alt = ":" + k + ":"; im.title = ":" + k + ": - tap to insert";
+      im.addEventListener("click", function(){ chatInsert(crRoomById(crActive).channel, ":" + k + ":"); });
+      row.appendChild(im);
+    });
+    appendExtras(row, function(){ return crRoomById(crActive).channel; });
+  }
+  var dr = $("#discStickers");
+  if(dr && !dr._done){
+    dr._done = 1;
+    Object.keys(STICKERS).forEach(function(k){
+      var im = document.createElement("img");
+      im.src = STICKERS[k]; im.alt = ":" + k + ":"; im.title = ":" + k + ":";
+      im.addEventListener("click", function(){
+        var ch = discChannel(D.id || "general");
+        chatInsert(ch, ":" + k + ":");
+      });
+      dr.appendChild(im);
+    });
+    appendExtras(dr, function(){ return discChannel(D.id || "general"); });
+  }
+  var sp = $("#crSpoilerBtn");
+  if(sp && !sp._w){ sp._w = 1; sp.addEventListener("click", function(){ chatInsert(crRoomById(crActive).channel, "||spoiler||"); }); }
+  var cl = $("#crClearBtn");
+  if(cl && !cl._w){ cl._w = 1; cl.addEventListener("click", function(){ try{ var c = comInst[crRoomById(crActive).channel]; if(c) c.inputText = ""; }catch(e){} }); }
+  var ds = $("#discSpoiler");
+  if(ds && !ds._w){ ds._w = 1; ds.addEventListener("click", function(){ chatInsert(discChannel(D.id || "general"), "||spoiler||"); }); }
+}
+function renderCommunity(){
+  paintCrRooms();
+  paintCrRoomHead();
+  paintStickers();
+  var c = $("#commCtn");
+  if(c && !c._room){
+    c._room = crActive;
+    mountComments(c, crRoomById(crActive).channel);
+  } else if(c && c._room !== crActive){
+    c._room = crActive;
+    c.innerHTML = "";
+    mountComments(c, crRoomById(crActive).channel);
+  } else if(c && !c.querySelector(".standaloneChat")){
+    mountComments(c, crRoomById(crActive).channel);
+  }
+}
+function discChannel(id){ return "flixnova-" + String(id || "unknown").toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 40); }
+function renderDiscussion(id){
+  var c = $("#discCtn");
+  if(!c) return;
+  c.innerHTML = "";
+  paintStickers();
+  mountComments(c, discChannel(id));
+}
+var AVS = ["🦊","🐼","🦁","🐸","🦄","🐯","🐙","👾","🤖","👻","🐰","🐨"];
+var PCOLS = ["#e3b341","#3ddc84","#5aa9ff","#ff6b9d","#b07bff","#ff8a4c"];
+var newAv = AVS[0], newCo = PCOLS[0];
+function paintProfBtn(){ try{ var p = curProfile(); $("#profBtn").textContent = (p && p.av) || "🦊"; }catch(e){} }
+function showGate(manage){ paintGate(!!manage); $("#profGate").hidden = false; }
+function hideGate(){ $("#profGate").hidden = true; }
+function paintGate(manage){
+  var g = $("#profGrid");
+  if(!g) return;
+  g.innerHTML = "";
+  g.classList.toggle("managing", !!manage);
+  (DB.profiles || []).forEach(function(p){
+    var t = document.createElement("div");
+    t.className = "profTile" + (p.id === DB.pid ? " cur" : "");
+    var av = document.createElement("button");
+    av.className = "profAv"; av.style.background = p.co || "#333"; av.textContent = p.av || "🦊"; av.title = p.name;
+    function go(){ if(g.classList.contains("managing")) return; switchProfile(p.id); }
+    av.addEventListener("click", go);
+    t.addEventListener("click", function(e){ if(e.target.closest("input")) return; go(); });
+    var nm = document.createElement("small");
+    nm.textContent = p.name || "Profile";
+    nm.style.cursor = "pointer";
+    nm.addEventListener("click", function(){ if(g.classList.contains("managing")) renameProfile(t, p); else switchProfile(p.id); });
+    t.appendChild(av); t.appendChild(nm);
+    if(g.classList.contains("managing") && (DB.profiles || []).length > 1){
+      var d = document.createElement("button");
+      d.className = "pDel"; d.textContent = "×"; d.title = "Delete profile";
+      d.addEventListener("click", function(){
+        if(d._arm){ delProfile(p.id); }
+        else{ d._arm = 1; d.textContent = "?"; d.style.background = "#5a1215"; setTimeout(function(){ try{ if(d.isConnected){ d._arm = 0; d.textContent = "×"; d.style.background = ""; } }catch(e){} }, 2500); }
+      });
+      t.appendChild(d);
+    }
+    g.appendChild(t);
+  });
+  $("#profForm").hidden = true;
+  $("#profAdd").hidden = (DB.profiles || []).length >= 5;
+}
+function renameProfile(tile, p){
+  var nm = tile.querySelector("small");
+  if(!nm || nm.querySelector("input")) return;
+  var inp = document.createElement("input");
+  inp.value = p.name || ""; inp.maxLength = 16;
+  inp.style.cssText = "width:88px;background:#0e1425;border:1px solid var(--line2);color:#fff;border-radius:8px;padding:4px 6px;font-size:13px;text-align:center;outline:none";
+  nm.textContent = ""; nm.appendChild(inp);
+  setTimeout(function(){ try{ inp.focus(); inp.select(); }catch(e){} }, 30);
+  var done = false;
+  function fin(save){
+    if(done) return; done = true;
+    if(save){ var v = inp.value.trim().slice(0, 16); if(v){ p.name = v; DB.save(); paintProfBtn(); } }
+    paintGate(true);
+  }
+  inp.addEventListener("keydown", function(e){ if(e.key === "Enter") fin(true); if(e.key === "Escape") fin(false); });
+  inp.addEventListener("blur", function(){ fin(true); });
+}
+function delProfile(id){
+  if((DB.profiles || []).length <= 1){ toast("Keep at least one profile"); return; }
+  DB.profiles = DB.profiles.filter(function(p){ return p.id !== id; });
+  if(DB.pid === id) DB.pid = DB.profiles[0].id;
+  var np = null;
+  DB.profiles.forEach(function(p){ if(p.id === DB.pid) np = p; });
+  if(np){ DB.list = np.list || []; DB.cont = np.cont || []; DB.rates = np.rates || {}; DB.pos = np.pos || {}; }
+  DB.save(); paintProfBtn(); paintGate(true);
+  toast("Profile deleted");
+}
+async function switchProfile(id){
+  if(id === DB.pid){ hideGate(); return; }
+  try{ await DB.save(); }catch(e){}
+  DB.pid = id;
+  var np = null;
+  (DB.profiles || []).forEach(function(p){ if(p.id === id) np = p; });
+  if(np){ DB.list = np.list || []; DB.cont = np.cont || []; DB.rates = np.rates || {}; DB.pos = np.pos || {}; }
+  try{ await DB.save(); }catch(e){}
+  try{ sessionStorage.setItem("fxProf", "1"); }catch(e){}
+  location.reload();
+}
+function paintPickers(){
+  var ar = $("#profAvRow"); ar.innerHTML = "";
+  AVS.forEach(function(a){
+    var b = document.createElement("button");
+    b.textContent = a; if(a === newAv) b.className = "on";
+    b.addEventListener("click", function(){ newAv = a; paintPickers(); });
+    ar.appendChild(b);
+  });
+  var cr = $("#profCoRow"); cr.innerHTML = "";
+  PCOLS.forEach(function(c){
+    var b = document.createElement("button");
+    b.className = "co" + (c === newCo ? " on" : ""); b.style.background = c; b.title = c;
+    b.addEventListener("click", function(){ newCo = c; paintPickers(); });
+    cr.appendChild(b);
+  });
+}
+$("#profBtn").addEventListener("click", function(){ showGate(false); });
+$("#profClose").addEventListener("click", hideGate);
+$("#profGate").addEventListener("click", function(e){ if(e.target === $("#profGate")) hideGate(); });
+$("#profAdd").addEventListener("click", function(){ $("#profForm").hidden = false; paintPickers(); setTimeout(function(){ try{ $("#profName").focus(); }catch(e){} }, 30); });
+$("#profCancel").addEventListener("click", function(){ $("#profForm").hidden = true; });
+$("#profManage").addEventListener("click", function(){
+  var g = $("#profGrid");
+  paintGate(!g.classList.contains("managing"));
+  $("#profManage").textContent = $("#profGrid").classList.contains("managing") ? "Done" : "Manage";
+});
+$("#profSave").addEventListener("click", function(){
+  var nm = $("#profName").value.trim().slice(0, 16);
+  if(!nm){ toast("Give the profile a name"); return; }
+  if((DB.profiles || []).length >= 5){ toast("Maximum 5 profiles"); return; }
+  var id = "p" + Date.now().toString(36);
+  DB.profiles.push({ id:id, name:nm, av:newAv, co:newCo, list:[], cont:[], rates:{}, pos:{} });
+  DB.save(); $("#profName").value = "";
+  switchProfile(id);
+});
+
+DB.load().then(function(){
+  paintProfBtn();
+  var skipGate = false;
+  try{ if(sessionStorage.getItem("fxProf") === "1"){ skipGate = true; sessionStorage.removeItem("fxProf"); } }catch(e){}
+  show("home");
+  try{
+    var q = new URLSearchParams(location.search);
+    var w = q.get("watch");
+    if(w){
+      var t = q.get("type") === "series" ? "series" : "movie";
+      var s = parseInt(q.get("s") || "1", 10) || 1, e = parseInt(q.get("e") || "1", 10) || 1;
+      openDetail(w, t, t === "movie").then(function(){
+        if(t === "series" && D.seasons){
+          var ss = D.seasons[s] ? s : parseInt(Object.keys(D.seasons)[0], 10);
+          D.season = ss; D.ep = e;
+          playEp(D.f, ss, e);
+        }
+      });
+    }
+  }catch(x){}
+  try{
+    var q2 = new URLSearchParams(location.search);
+    if(q2.get("watch")) skipGate = true;
+    var seen = null;
+    try{ seen = localStorage.getItem("fxSeen"); }catch(e){}
+    if(!seen){
+      try{ localStorage.setItem("fxSeen", "1"); }catch(e){}
+      // first visit: show gate so user picks a profile
+    } else if((DB.profiles || []).length <= 1){
+      skipGate = true;
+    }
+  }catch(e){}
+  if(!skipGate) showGate(false);
+});
+</script>
+
+</body>
+</html>
