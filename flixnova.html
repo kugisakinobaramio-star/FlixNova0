@@ -1,1 +1,1000 @@
-PLACEHOLDER
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0c0f">
+<meta name="description" content="FlixNova — Watch Movies, TV Shows & Anime">
+<title>FlixNova — Watch Movies, TV Shows & Anime</title>
+</head>
+<body>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+  --bg:#0a0c0f; --bg2:#101318; --panel:#14181e; --panel2:#1a1f27; --line:#22282f; --line2:#303845;
+  --text:#f4f5f6; --dim:#c2c7cf; --mut:#848c96;
+  --acc:#f2f3f4; --acc2:#c3cad2; --gold:#e3b341; --good:#3ddc84; --bad:#ff6b6b;
+  --r:12px; --font:Inter,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--font);text-align:left;-webkit-font-smoothing:antialiased}
+a{color:var(--acc2)}
+button{font:inherit}
+::-webkit-scrollbar{width:10px;height:8px}
+::-webkit-scrollbar-thumb{background:#2b323b;border-radius:8px;border:2px solid var(--bg)}
+::-webkit-scrollbar-track{background:transparent}
+.topbar{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:18px;padding:12px 26px;background:rgba(11,14,23,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.topbar>*{min-width:0}
+.logo{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.logoMark{width:34px;height:34px;border-radius:10px;background:#f2f3f4;display:grid;place-items:center;position:relative}
+.logoMark::before{display:none}
+.logoMark::after{content:"";position:relative;width:0;height:0;border-left:10px solid #111418;border-top:6.5px solid transparent;border-bottom:6.5px solid transparent;margin-left:3px}
+.logoName{font-weight:800;font-size:19px;letter-spacing:.14em;line-height:1;color:#f2f3f4}
+.logoName span{background:none;color:#7d8590}
+.logoTag{font-size:8.5px;font-weight:700;letter-spacing:.4em;color:var(--mut);margin-top:3px}
+.nav{display:flex;gap:2px;margin-left:6px}
+.nav button{background:none;border:0;color:var(--dim);font-size:13.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:10px 14px;border-radius:8px;cursor:pointer}
+.nav button:hover{color:#fff;background:rgba(255,255,255,.06)}
+.nav button.on{color:#fff;background:rgba(255,255,255,.08)}
+.searchWrap{margin-left:auto;position:relative;width:min(360px,32vw)}
+.searchWrap input{box-sizing:border-box;width:100%;max-width:100%;background:#0e1425;border:1px solid var(--line);color:var(--text);border-radius:999px;padding:10px 16px 10px 38px;font-size:14px;outline:none}
+.searchWrap input:focus{border-color:var(--acc)}
+.searchWrap .mag{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--mut);font-size:15px;pointer-events:none}
+.sdrop{position:absolute;top:calc(100% + 8px);left:0;right:0;background:var(--panel2);border:1px solid var(--line2);border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6);max-height:380px;overflow-y:auto}
+.sdrop button{display:flex;gap:10px;align-items:center;width:100%;background:none;border:0;color:var(--text);padding:8px 10px;cursor:pointer;text-align:left}
+.sdrop button:hover{background:rgba(255,255,255,.06)}
+.sdrop img{width:34px;height:50px;object-fit:cover;border-radius:6px;background:#000;flex:0 0 34px}
+.sdrop .t{font-size:13px;font-weight:700}
+.sdrop .s{font-size:11.5px;color:var(--mut)}
+main{display:block;min-height:70vh}
+.hero{position:relative;height:min(62vh,540px);min-height:380px;overflow:hidden;background:#05070d}
+.heroBg{position:absolute;inset:0;background-size:cover;background-position:center 20%;transition:opacity .6s}
+.heroShade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,11,20,.96) 22%,rgba(8,11,20,.55) 55%,rgba(8,11,20,.15)),linear-gradient(0deg,var(--bg) 2%,transparent 40%,rgba(8,11,20,.3))}
+.heroInner{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;justify-content:flex-end;padding:0 26px 44px;max-width:900px}
+.kicker{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.16em;color:var(--acc2)}
+.heroTitle{font-size:clamp(28px,5vw,52px);font-weight:900;margin:8px 0 6px;letter-spacing:-.02em;line-height:1.05}
+.heroMeta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:13.5px;color:var(--dim)}
+.heroMeta .rate{color:var(--gold);font-weight:800}
+.heroMeta .pill{border:1px solid var(--line2);border-radius:6px;padding:2px 8px;font-size:12px}
+.heroDesc{margin:12px 0 18px;color:#c6d0e4;font-size:14px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;max-width:640px}
+.heroBtns{display:flex;gap:10px}
+.btn{border:0;border-radius:10px;padding:12px 22px;font-weight:800;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn.go{background:linear-gradient(135deg,#00b9ff,#0070ff);color:#fff;box-shadow:0 8px 26px rgba(0,150,255,.35)}
+.btn.go:hover{filter:brightness(1.1)}
+.btn.ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)}
+.btn.ghost:hover{background:rgba(255,255,255,.18)}
+.heroDots{position:absolute;z-index:3;right:26px;bottom:44px;display:flex;gap:7px}
+.heroDots button{width:26px;height:4px;border-radius:4px;border:0;background:rgba(255,255,255,.25);cursor:pointer;padding:0}
+.heroDots button.on{background:var(--acc)}
+.heroArrow{position:absolute;z-index:3;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.4);color:#fff;font-size:18px;cursor:pointer}
+.heroArrow:hover{background:rgba(255,255,255,.14)}
+#hPrev{left:14px}#hNext{right:14px}
+.rowSec{padding:8px 26px 0}
+.rowHead{display:flex;align-items:baseline;gap:12px;margin:22px 0 12px}
+.rowHead h2{margin:0;font-size:19px;font-weight:800;letter-spacing:-.01em}
+.rowHead .more{margin-left:auto;background:none;border:0;color:var(--acc2);font-size:12.5px;font-weight:700;cursor:pointer}
+.rail{display:flex;gap:12px;overflow-x:auto;padding:4px 2px 14px;scroll-behavior:smooth}
+.rail::-webkit-scrollbar{height:6px}
+.card{position:relative;flex:0 0 158px;width:158px;cursor:pointer;border-radius:10px;overflow:hidden;background:var(--panel);border:1px solid transparent;transition:transform .15s,border-color .15s}
+.card:hover{transform:translateY(-4px);border-color:var(--line2)}
+.card img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;background:#05070d}
+.card .q{position:absolute;top:7px;left:7px;background:rgba(244,245,246,.92);color:#111418;font-size:10.5px;font-weight:900;border-radius:5px;padding:2px 7px;letter-spacing:.05em}
+.card .rt{position:absolute;top:7px;right:7px;background:rgba(0,0,0,.72);color:var(--gold);font-size:11px;font-weight:800;border-radius:5px;padding:2px 7px}
+.card .hov{position:absolute;inset:0;display:grid;place-items:center;background:rgba(4,8,18,.45);opacity:0;transition:opacity .15s}
+.card:hover .hov{opacity:1}
+.card .hov i{width:46px;height:46px;border-radius:50%;background:#f2f3f4;color:#111418;font-style:normal;font-size:18px;display:grid;place-items:center;padding-left:3px}
+.card .ql{position:absolute;right:8px;bottom:8px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:rgba(0,0,0,.6);color:#fff;font-size:17px;line-height:1;cursor:pointer}
+.card .ql:hover{background:var(--acc);border-color:var(--acc);color:#111418}
+.card .ct{padding:9px 10px 11px}
+.card .ct b{display:block;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .ct span{font-size:11.5px;color:var(--mut)}
+.card.t10{flex-basis:190px;width:190px}
+.card .rank{position:absolute;left:2px;bottom:34px;z-index:2;font-size:64px;font-weight:900;color:#fff;text-shadow:-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000,0 6px 18px rgba(0,0,0,.7);line-height:1;pointer-events:none}
+.card.t10 img{margin-left:34px;width:calc(100% - 34px)}
+.pageHead{padding:30px 26px 6px;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.pageHead h1{margin:0;font-size:26px;font-weight:900;letter-spacing:-.02em}
+.pageHead p{width:100%;margin:2px 0 0;color:var(--mut);font-size:13.5px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;padding:14px 26px 4px}
+.chips button{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer}
+.chips button:hover{color:#fff;border-color:var(--line2)}
+.chips button.on{background:rgba(255,255,255,.09);border-color:#4a545f;color:#fff}
+.yrSel{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;outline:none;cursor:pointer}
+.pageHead .yrSel{margin-left:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:14px;padding:14px 26px 10px}
+.grid .card{flex:none;width:auto}
+.centerRow{display:flex;justify-content:center;padding:18px 0 34px}
+.empty{padding:60px 20px;text-align:center;color:var(--mut)}
+.skel{position:relative;overflow:hidden;background:var(--panel)!important;border:0!important;min-height:250px}
+.skel::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.07) 50%,transparent 70%);animation:sh 1.2s infinite}
+@keyframes sh{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+.mback{position:fixed;inset:0;z-index:90;background:rgba(4,6,12,.78);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:4vh 16px}
+.modal{position:relative;width:min(920px,100%);background:var(--bg2);border:1px solid var(--line2);border-radius:16px;overflow:hidden;box-shadow:0 30px 100px rgba(0,0,0,.7);animation:up .22s ease}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.dHero{position:relative;min-height:300px;background-size:cover;background-position:center 20%}
+.dHero::after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,var(--bg2) 4%,rgba(14,18,32,.55) 55%,rgba(14,18,32,.25))}
+.dClose{position:absolute;z-index:5;top:12px;right:12px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.55);color:#fff;font-size:16px;cursor:pointer}
+.dBody{position:relative;z-index:2;display:flex;gap:20px;padding:0 26px 26px;margin-top:-110px}
+.dPoster{width:170px;flex:0 0 170px;border-radius:12px;box-shadow:0 16px 50px rgba(0,0,0,.6);align-self:flex-start}
+.dInfo{min-width:0;flex:1}
+.dInfo h2{margin:6px 0 8px;font-size:26px;font-weight:900;letter-spacing:-.02em}
+.dMeta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--dim)}
+.dMeta .rate{color:var(--gold);font-weight:800;font-size:15px}
+.dMeta .pill{border:1px solid var(--line2);border-radius:6px;padding:2px 9px;font-size:12px}
+.dGenres{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.dGenres span{background:rgba(255,255,255,.06);border:1px solid #39424c;color:#d5dae0;font-size:12px;border-radius:999px;padding:4px 12px}
+.dDesc{font-size:14px;line-height:1.65;color:#c6d0e4;margin:6px 0 12px}
+.dCast{font-size:12.5px;color:var(--mut);margin-bottom:14px}
+.dBtns{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px}
+.seBox{padding:0 26px 26px}
+.seBox h3{font-size:14px;margin:18px 0 10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.seasonRow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.seasonRow button{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer}
+.seasonRow button.on{background:rgba(255,255,255,.09);border-color:#4a545f;color:#fff}
+.epGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;max-height:220px;overflow-y:auto;padding-right:4px}
+.epGrid button{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px 4px;font-size:13px;font-weight:700;cursor:pointer}
+.epGrid button:hover{border-color:var(--acc);color:var(--acc2)}
+.epGrid button.cur{background:rgba(255,255,255,.1);border-color:var(--acc)}
+.epInfo{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.6;color:#c6d0e4}
+.epInfo b{color:#fff}
+.epInfo .air{color:var(--mut);font-size:12px}
+.rateBox{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;color:var(--mut)}
+.rateBox button{background:none;border:0;font-size:20px;cursor:pointer;color:#3a4a72;padding:2px}
+.rateBox button.lit{color:var(--gold)}
+.rateBox button:hover{transform:scale(1.2)}
+.castRow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.castRow button{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer}
+.castRow button:hover{border-color:var(--acc);color:var(--acc2)}
+.pShell{width:min(1060px,100%);background:#000;border:1px solid var(--line2);border-radius:14px;overflow:hidden}
+.pTop{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2)}
+.pTop b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pTop .x{margin-left:auto;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px}
+.pStage{position:relative;aspect-ratio:16/9;background:#000}
+.pStage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.pStage video{position:absolute;inset:0;width:100%;height:100%;background:#000}
+.pStatus{position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;background:rgba(3,5,10,.82);z-index:5;text-align:center;padding:20px}
+.pStatus .spin{width:42px;height:42px;border-radius:50%;border:3px solid var(--line2);border-top-color:var(--acc);animation:rot 0.9s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.pStatus .msg{font-size:14px;color:var(--dim);max-width:420px;line-height:1.6}
+.pStatus .retry{background:#f2f3f4;color:#111418;border:0;border-radius:10px;padding:10px 22px;font-weight:800;cursor:pointer}
+.pBar{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg2);flex-wrap:wrap}
+.pBar .srv{background:var(--panel2);border:1px solid var(--line);color:var(--dim);border-radius:8px;padding:8px 13px;font-size:12.5px;font-weight:700;cursor:pointer}
+.pBar .srv:disabled{opacity:.4;cursor:default}
+.pBar .srv.on{background:rgba(255,255,255,.09);border-color:#4a545f;color:#fff}
+.pBar .epNav{margin-left:auto;display:flex;gap:8px}
+.pBar .epNav button{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:8px 13px;font-size:12.5px;font-weight:700;cursor:pointer}
+.pBar .epNav button:disabled{opacity:.4;cursor:default}
+.pBar .epNav button:hover:not(:disabled){border-color:var(--acc)}
+.srvNote{font-size:11px;color:var(--mut);margin-left:auto}
+#pTools{margin-left:8px}
+.pShell.wide{width:min(1400px,100%)}
+.pShell.wide .pStage{aspect-ratio:21/10}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:#101a33;border:1px solid var(--acc);color:#fff;border-radius:10px;padding:11px 20px;font-size:13.5px;font-weight:600;z-index:200;opacity:0;transition:all .25s;pointer-events:none;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%)}
+footer{border-top:1px solid var(--line);margin-top:30px;padding:26px;text-align:center;color:var(--mut);font-size:12.5px;line-height:1.7}
+footer b{color:var(--dim)}
+.tabs{display:flex;gap:8px;padding:14px 26px 0}
+.tabs button{background:var(--panel);border:1px solid var(--line);color:var(--dim);border-radius:999px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer}
+.secSearch{display:flex;gap:8px;padding:14px 26px 0}
+.secSearch input{flex:1;background:#0e1425;border:1px solid var(--line);color:var(--text);border-radius:11px;padding:11px 14px;font-size:14px;outline:none;min-width:0;box-sizing:border-box}
+.secSearch input:focus{border-color:var(--acc)}
+.secGo{background:#f2f3f4;color:#111418;border:0;border-radius:11px;padding:0 22px;font-weight:800;cursor:pointer}
+.tabs button.on{background:rgba(255,255,255,.09);border-color:#4a545f;color:#fff}
+#listTabs{align-items:center;flex-wrap:wrap}
+#listTabs .yrSel{margin-left:auto}
+#listCount{font-size:12.5px;color:var(--mut);font-weight:700}
+@media(max-width:760px){.secSearch{padding-left:14px;padding-right:14px}}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(1000px 500px at 50% -10%,rgba(255,255,255,.05),transparent 60%)}
+main,.topbar,footer{position:relative;z-index:1}
+.topbar{background:rgba(10,12,15,.9);border-bottom:1px solid #1e242c;box-shadow:none}
+
+.hero{height:min(74vh,620px)}
+.heroBg{animation:kb 26s ease-in-out infinite alternate}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.12)}}
+.heroInner>*{animation:rise .6s ease both}
+.heroInner>*:nth-child(2){animation-delay:.05s}
+.heroInner>*:nth-child(3){animation-delay:.1s}
+.heroInner>*:nth-child(4){animation-delay:.15s}
+.heroInner>*:nth-child(5){animation-delay:.2s}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.heroTitle{text-shadow:0 4px 30px rgba(0,0,0,.8)}
+.btn.go{background:#f2f3f4;color:#111418;box-shadow:none}
+
+
+.btn.go:hover{background:#ffffff}
+.rowHead h2{position:relative;padding-left:13px}
+.rowHead h2::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:4px;border-radius:4px;background:#3a424c}
+.railWrap{position:relative}
+.railBtn{position:absolute;top:0;bottom:14px;width:46px;z-index:3;border:0;background:linear-gradient(90deg,rgba(5,7,13,.92),transparent);color:#fff;font-size:28px;cursor:pointer;opacity:0;transition:opacity .2s;padding:0}
+.railWrap:hover .railBtn{opacity:1}
+.railBtn.r{right:0;background:linear-gradient(270deg,rgba(5,7,13,.92),transparent)}
+.railBtn.l{left:0}
+.railBtn:hover{color:var(--acc2)}
+@media(hover:none){.railBtn{display:none}}
+.card:hover{transform:translateY(-4px);border-color:#3a424c;box-shadow:0 12px 28px rgba(0,0,0,.5)}
+.card .hov i{width:48px;height:48px}
+
+.card .prog{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(255,255,255,.22);z-index:2}
+.card .prog i{display:block;height:100%;background:#e8e8e8}
+.card.t10 .rank{font-size:78px;color:transparent;-webkit-text-stroke:2px rgba(255,255,255,.92);text-shadow:0 8px 24px rgba(0,0,0,.85)}
+.modal{background:linear-gradient(180deg,#12161c,#0e1116);border-color:#2b323b;box-shadow:0 30px 100px rgba(0,0,0,.7)}
+.pOverlay{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;background:rgba(3,5,10,.8);text-align:center;padding:20px}
+.pOverlay .msg{font-size:16px;font-weight:800}
+.pOverlay .sub{font-size:13px;color:var(--dim)}
+.pOverlay .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.pOverlay .big{font-size:34px;font-weight:900}
+.cdBar{width:230px;height:4px;background:rgba(255,255,255,.2);border-radius:4px;overflow:hidden}
+.cdBar i{display:block;height:100%;background:#e8e8e8;transition:width 1s linear}
+#pSkip{position:absolute;right:16px;bottom:76px;z-index:6;background:rgba(10,14,26,.92);border:1px solid var(--acc);color:#fff;border-radius:10px;padding:10px 18px;font-weight:800;font-size:13px;cursor:pointer}
+#pSkip:hover{background:var(--acc);color:#111418}
+.dResume{font-size:13px;color:var(--acc2);margin:8px 0 0;font-weight:600}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.heroBg,.logoMark,.card .hov i,.heroInner>*{animation:none}}
+#contRail .card .rt{right:41px}
+.card .cx{position:absolute;top:7px;right:7px;z-index:3;width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.7);color:#fff;font-size:14px;line-height:1;cursor:pointer;opacity:0;transition:opacity .15s,background .15s;padding:0}
+.card:hover .cx{opacity:1}
+.card .cx:hover{background:#f2f3f4;border-color:#f2f3f4;color:#111418}
+@media(hover:none){.card .cx{opacity:1}}
+.mobNav{display:none}
+@media(max-width:760px){
+  .topbar{padding:10px 14px;gap:10px;flex-wrap:wrap}
+  .nav{display:none}
+  .searchWrap{width:100%;order:3}
+  .rowSec,.pageHead,.chips,.grid,.tabs{padding-left:14px;padding-right:14px}
+  .hero{height:52vh;min-height:340px}
+  .heroInner{padding:0 14px 34px}
+  .heroDots{display:none}
+  .heroArrow{display:none}
+  .card{flex-basis:128px;width:128px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px}
+  .dBody{flex-direction:column;padding:0 16px 18px;margin-top:-80px}
+  .dPoster{width:120px;flex-basis:120px}
+  .mobNav{display:flex;position:fixed;z-index:70;left:0;right:0;bottom:0;background:rgba(11,14,23,.97);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+  .mobNav button{flex:1;background:none;border:0;color:var(--mut);font-size:10px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 0;cursor:pointer}
+  .mobNav button i{font-style:normal;font-size:18px}
+  .mobNav button.on{color:var(--acc2)}
+  main{padding-bottom:70px}
+  footer{margin-bottom:60px}
+}
+.profBtn{width:38px;height:38px;border-radius:50%;border:2px solid var(--line2);font-size:20px;cursor:pointer;background:var(--panel2);flex:0 0 auto;line-height:1}
+.profGate{position:fixed;inset:0;z-index:200;background:rgba(5,7,12,.97);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+.profCard{text-align:center;max-width:660px;width:100%;margin:auto}
+.profCard h2{font-weight:800;font-size:26px;margin:14px 0 4px}
+.profCard .psub{color:var(--mut);font-size:13px;margin-bottom:20px}
+.profGrid{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
+.profTile{background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--text);position:relative;padding:6px;min-width:96px}
+.profAv{width:84px;height:84px;border-radius:18px;display:grid;place-items:center;font-size:44px;border:3px solid transparent;cursor:pointer}
+.profTile.cur .profAv{border-color:#fff}
+.profTile small{font-size:13px;font-weight:700;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.profTile .pDel{position:absolute;top:0;right:8px;width:24px;height:24px;border-radius:50%;border:0;background:#3a1215;color:#ff9090;font-size:13px;cursor:pointer;display:none}
+.profTile .pEd{position:absolute;top:0;left:8px;width:24px;height:24px;border-radius:50%;border:0;background:#12203a;color:#9dc4ff;font-size:12px;cursor:pointer;display:none}
+.profGrid.managing .pDel,.profGrid.managing .pEd{display:block}
+.profPick{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0}
+.profPick button{width:42px;height:42px;border-radius:10px;border:2px solid transparent;font-size:22px;cursor:pointer;background:var(--panel2)}
+.profPick button.on{border-color:#fff}
+.profPick button.co{font-size:0}
+#profName{background:#0e1425;border:1px solid var(--line2);color:#fff;border-radius:10px;padding:10px 14px;font-size:14px;outline:none;width:min(280px,90%);margin-top:6px}
+.commWrap{max-width:920px;margin:0 auto;padding:6px 26px 46px}
+.discHint{font-size:11px;color:var(--mut);font-weight:400}
+.stickHint{font-size:12px;color:var(--mut);margin:0 0 8px}
+.stickRow{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.stickRow img{width:44px;height:44px;border-radius:10px;cursor:pointer;border:1px solid var(--line2);transition:transform .12s,border-color .12s}
+.stickRow img:hover{transform:scale(1.3);border-color:#f47521;z-index:2;position:relative}
+.stickRow button.emo{background:var(--panel2);border:1px solid var(--line2);border-radius:10px;font-size:20px;width:44px;height:44px;cursor:pointer}
+.stickRow button.emo:hover{border-color:#f47521;transform:scale(1.15)}
+.stickRow button.kmo{background:var(--panel2);border:1px solid var(--line2);color:var(--text);border-radius:10px;font-size:12px;padding:0 10px;height:44px;cursor:pointer;font-weight:700;white-space:nowrap}
+.stickRow button.kmo:hover{border-color:#f47521;color:#ffb37e}
+.srv.pulse{border-color:#f47521!important;animation:pl 1s ease-in-out infinite}
+@keyframes pl{50%{box-shadow:0 0 0 4px rgba(244,117,33,.35)}}
+
+/* ---- Crunchyroll-style Community (Anime Hub) ---- */
+.crHead h1{color:#fff}
+.crHead h1::after{content:"  •  ANIME HUB";color:#f47521;font-size:13px;letter-spacing:.18em}
+.crWrap{max-width:1180px;margin:0 auto;padding:10px 26px 46px;display:grid;grid-template-columns:230px minmax(0,1fr);gap:14px}
+.crRooms{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:4px;align-self:start;position:sticky;top:76px}
+.crRooms .rh{font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--mut);padding:8px 10px 4px}
+.crRoom{display:flex;gap:10px;align-items:flex-start;width:100%;background:none;border:1px solid transparent;color:var(--dim);border-radius:10px;padding:10px;cursor:pointer;text-align:left}
+.crRoom:hover{background:rgba(255,255,255,.05);color:#fff}
+.crRoom.on{background:rgba(244,117,33,.14);border-color:rgba(244,117,33,.5);color:#fff}
+.crRoom .e{font-size:17px;line-height:1}
+.crRoom b{display:block;font-size:13.5px}
+.crRoom small{display:block;font-size:11.5px;color:var(--mut);margin-top:2px;line-height:1.4}
+.crMain{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+.crRoomHead{display:flex;align-items:baseline;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(244,117,33,.12),transparent)}
+.crRoomHead b{font-size:16px}
+.crRoomHead span{font-size:12.5px;color:var(--mut)}
+.crOnline{margin-left:auto;font-size:11.5px;color:#9fe6b0;font-weight:700}
+.crTools{padding:10px 12px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.crTools .stickRow{margin:0}
+.crActions{margin-left:auto;display:flex;gap:8px}
+.crActions button{background:var(--panel2);border:1px solid var(--line2);color:var(--text);border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer}
+.crActions button:hover{border-color:#f47521;color:#ffb37e}
+.crChat{min-height:380px}
+.crChat .standalone-chat-ctn{border:0!important}
+.crRules{padding:10px 16px;font-size:12px;color:var(--mut);border-top:1px solid var(--line);line-height:1.6}
+.crRules b{color:#ffb37e}
+/* per-title discussion mini header */
+.discMini{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.discMini .stickRow{margin:0}
+.discMini img{width:34px;height:34px}
+.discMini button{background:var(--panel2);border:1px solid var(--line2);color:var(--text);border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer}
+.discMini button:hover{border-color:#f47521}
+@media(max-width:860px){.crWrap{grid-template-columns:1fr;padding-left:14px;padding-right:14px}.crRooms{position:static;flex-direction:row;overflow-x:auto;align-items:stretch}.crRooms .rh{display:none}.crRoom{min-width:150px;flex:0 0 auto;padding:8px}.crRoom small{display:none}.crRoom b{font-size:12.5px}.crTools{padding:8px}}
+
+
+/* ===== Standalone chat UI ===== */
+.standaloneChat{display:flex;flex-direction:column;height:420px;min-height:320px;background:#0d1116;border:1px solid var(--line);border-radius:12px;overflow:hidden}.standaloneChatHead{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-size:12px;color:var(--mut)}.chatBadge{font-size:10px;font-weight:800;letter-spacing:.04em}.chatBadge.live{color:#3ddc84}.standaloneChatMessages{flex:1;overflow:auto;padding:12px}.chatMsg{display:flex;gap:9px;padding:8px 4px}.chatAvatar{width:31px;height:31px;min-width:31px;border-radius:50%;display:grid;place-items:center;font-size:17px}.chatMsgBody{min-width:0;flex:1}.chatMsgHead{display:flex;gap:8px;align-items:baseline}.chatMsgHead b{font-size:12.5px}.chatMsgHead time{font-size:10px;color:var(--mut)}.chatMsgText{font-size:13px;line-height:1.45;word-break:break-word;color:var(--text)}.chatSticker{width:38px;height:38px;object-fit:cover;vertical-align:middle;border-radius:6px}.chatKmo{font-family:monospace}.chatSpoiler{filter:blur(6px);background:#252b34;border-radius:4px;padding:1px 5px;cursor:pointer;user-select:none}.chatSpoiler.revealed{filter:none}.standaloneChatComposer{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);background:#10151b}.standaloneChatComposer textarea{flex:1;resize:none;min-height:40px;max-height:100px;background:#090c10;border:1px solid var(--line2);color:var(--text);border-radius:9px;padding:10px;outline:none;font:inherit}.standaloneChatComposer textarea:focus{border-color:#f47521}.standaloneChatComposer .btn{min-width:72px}@media(max-width:600px){.standaloneChat{height:390px}.standaloneChatComposer{padding:8px}.standaloneChatComposer .btn{min-width:64px}}
+</style>
+
+<header class="topbar">
+  <div class="logo" id="logoBtn"><div class="logoMark"></div><div><div class="logoName">FLIX<span>NOVA</span></div><div class="logoTag">STREAM UNIVERSE</div></div></div>
+  <nav class="nav" id="deskNav">
+    <button data-v="home" class="on">Home</button>
+    <button data-v="movies">Movies</button>
+    <button data-v="tv">TV Shows</button>
+    <button data-v="anime">Anime</button>
+    <button data-v="mylist">My List</button>
+    <button data-v="community">Community</button>
+  </nav>
+  <div class="searchWrap">
+    <span class="mag">⌕</span>
+    <input id="searchInput" type="search" placeholder="Search movies, shows, anime…" autocomplete="off" aria-label="Search">
+    <div class="sdrop" id="sdrop" hidden></div>
+  </div>
+  <button class="profBtn" id="profBtn" title="Switch profile">🦊</button>
+</header>
+
+<main id="main">
+  <section id="v-home">
+    <div class="hero" id="hero">
+      <div class="heroBg" id="heroBg"></div>
+      <div class="heroShade"></div>
+      <button class="heroArrow" id="hPrev">‹</button>
+      <button class="heroArrow" id="hNext">›</button>
+      <div class="heroInner">
+        <div class="kicker" id="heroKick">✦ FEATURED</div>
+        <div class="heroTitle" id="heroTitle">Loading…</div>
+        <div class="heroMeta" id="heroMeta"></div>
+        <div class="heroDesc" id="heroDesc"></div>
+        <div class="heroBtns">
+          <button class="btn go" id="heroPlay">▶ Watch Now</button>
+          <button class="btn ghost" id="heroInfo">More Info</button>
+          <button class="btn ghost" id="heroList">+ List</button>
+        </div>
+      </div>
+      <div class="heroDots" id="heroDots"></div>
+    </div>
+    <div id="homeRows"></div>
+  </section>
+
+  <section id="v-movies" hidden>
+    <div class="pageHead"><h1>Movies</h1><span id="movieYrWrap"></span><p>Trending and top-rated films in HD.</p></div>
+    <div class="chips" id="movieChips"></div>
+    <div class="grid" id="movieGrid"></div>
+    <div class="centerRow"><button class="btn ghost" id="movieMore">Load More</button></div>
+  </section>
+
+  <section id="v-tv" hidden>
+    <div class="pageHead"><h1>TV Shows</h1><span id="tvYrWrap"></span><p>Binge-worthy series with full seasons and episodes.</p></div>
+    <div class="chips" id="tvChips"></div>
+    <div class="grid" id="tvGrid"></div>
+    <div class="centerRow"><button class="btn ghost" id="tvMore">Load More</button></div>
+  </section>
+
+  <section id="v-anime" hidden>
+    <div class="pageHead"><h1>Anime</h1><p>Every anime ever — subbed and dubbed, powered by AniList.</p></div>
+    <div class="tabs" id="animeTabs">
+      <button data-m="top" class="on">Top Rated</button>
+      <button data-m="trend">Trending</button>
+      <button data-m="pop">Most Popular</button>
+    </div>
+    <div class="secSearch" id="animeSearch">
+      <input id="animeInput" type="search" placeholder="Search all anime…" autocomplete="off" aria-label="Search anime">
+      <button class="secGo" id="animeGo">Search</button>
+    </div>
+    <div class="grid" id="animeGrid"></div>
+    <div class="centerRow"><button class="btn ghost" id="animeMore">Load More</button></div>
+  </section>
+
+  <section id="v-search" hidden>
+    <div class="pageHead"><h1 id="searchTitle">Search</h1><p id="searchSub"></p></div>
+    <div class="tabs" id="searchTabs">
+      <button data-t="all" class="on">All</button>
+      <button data-t="movie">Movies</button>
+      <button data-t="series">TV Shows</button>
+    </div>
+    <div class="grid" id="searchGrid"></div>
+  </section>
+
+  <section id="v-mylist" hidden>
+    <div class="pageHead"><h1>My List</h1><p>Your saved movies and shows on this device.</p></div>
+    <div class="tabs" id="listTabs">
+      <button data-t="all" class="on">All</button>
+      <button data-t="movie">Movies</button>
+      <button data-t="series">TV Shows</button>
+      <button data-t="anime">Anime</button>
+      <select class="yrSel" id="listSort" aria-label="Sort My List"><option value="recent">Recent</option><option value="az">A–Z</option><option value="rate">Top rated</option></select>
+      <span id="listCount"></span>
+    </div>
+    <div class="grid" id="listGrid"></div>
+  </section>
+
+  <section id="v-community" hidden>
+    <div class="pageHead crHead"><h1>Community</h1><p>Crunchyroll-style anime hangout — pick a room, chat with your profile name, tap stickers to drop them in chat. No spoilers without a tag.</p></div>
+    <div class="crWrap">
+      <aside class="crRooms" id="crRooms" aria-label="Chat rooms"></aside>
+      <div class="crMain">
+        <div class="crRoomHead"><b id="crRoomName"># general</b><span id="crRoomDesc"></span><span class="crOnline" id="crOnline">● online</span></div>
+        <div class="crTools"><div class="stickRow" id="stickRow"></div><div class="crActions"><button id="crSpoilerBtn" title="Insert a spoiler tag">⚠️ Spoiler</button><button id="crClearBtn" title="Clear chat input">Clear</button></div></div>
+        <div id="commCtn" class="crChat"></div>
+        <div class="crRules"><b>Room rules:</b> be kind · tag spoilers with <b>||spoiler||</b> or the Spoiler button · no spam · stickers welcome (:popcorn: :clapper: :starstruck: :lol: :lit: :heartpop: :uwu: :cry: :rage: :gg: :hype: :sleepy: :soda: :ghost:). Chatting as <b id="crNick">Guest</b>.</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<nav class="mobNav" id="mobNav">
+  <button data-v="home" class="on"><i>⌂</i>Home</button>
+  <button data-v="movies"><i>🎬</i>Movies</button>
+  <button data-v="tv"><i>📺</i>TV</button>
+  <button data-v="anime"><i>✦</i>Anime</button>
+  <button data-v="mylist"><i>♥</i>List</button>
+  <button data-v="community"><i>💬</i>Chat</button>
+</nav>
+
+<div class="mback" id="dback" hidden>
+  <div class="modal">
+    <div class="dHero" id="dHero"><button class="dClose" id="dClose">✕</button></div>
+    <div class="dBody">
+      <img class="dPoster" id="dPoster" alt="">
+      <div class="dInfo">
+        <h2 id="dTitle"></h2>
+        <div class="dMeta" id="dMeta"></div>
+        <div class="dGenres" id="dGenres"></div>
+        <div class="dDesc" id="dDesc"></div>
+        <div class="dCast" id="dCast"></div>
+        <div class="dBtns">
+          <button class="btn go" id="dPlay">▶ Play</button>
+          <button class="btn ghost" id="dTrailer" hidden>Trailer</button>
+          <button class="btn ghost" id="dList">+ My List</button>
+        </div>
+        <div class="dResume" id="dResume" hidden></div>
+        <div class="rateBox" id="rateBox"></div>
+      </div>
+    </div>
+    <div class="seBox" id="seBox" hidden>
+      <h3>Seasons & Episodes</h3>
+      <div class="seasonRow" id="seasonRow"></div>
+      <div class="epGrid" id="epGrid"></div>
+      <div class="epInfo" id="epInfo" hidden></div>
+    </div>
+    <div class="seBox" id="moreBox" hidden>
+      <h3>More Like This</h3>
+      <div class="rail" id="moreRail"></div>
+    </div>
+    <div class="seBox" id="discBox">
+      <h3>Discussion <span class="discHint">per-title anime-hub chat · spoiler-tag respected</span></h3>
+      <div class="discMini"><div class="stickRow" id="discStickers"></div><button id="discSpoiler" title="Insert spoiler tag">⚠️ Spoiler</button></div>
+      <div id="discCtn"></div>
+    </div>
+  </div>
+</div>
+
+<div class="mback" id="pback" hidden style="background:#000">
+  <div class="pShell">
+    <div class="pTop"><b id="pTitle"></b><button class="x" id="pClose">✕ Close</button></div>
+    <div class="pStage">
+      <video id="pVideo" controls playsinline preload="metadata"></video>
+      <iframe id="pFrame" hidden allowfullscreen allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>
+      <div class="pStatus" id="pStatus" hidden></div>
+      <div class="pOverlay" id="pResume" hidden>
+        <div class="msg">Continue watching?</div>
+        <div class="sub" id="pResumeTxt"></div>
+        <div class="row"><button class="btn go" id="pResumeGo">▶ Resume</button><button class="btn ghost" id="pResumeNo">From start</button></div>
+      </div>
+      <div class="pOverlay" id="pNextUp" hidden>
+        <div class="msg">Up next</div>
+        <div class="sub" id="pNextTxt"></div>
+        <div class="big" id="pNextN">10</div>
+        <div class="cdBar"><i id="pNextBar" style="width:100%"></i></div>
+        <div class="row"><button class="btn go" id="pNextGo">Play now</button><button class="btn ghost" id="pNextCancel">Cancel</button></div>
+      </div>
+      <button id="pSkip" hidden>Skip +85s ⏩</button>
+    </div>
+    <div class="pBar">
+      <span id="srvTabs" style="display:flex;gap:8px;flex-wrap:wrap"></span>
+      <span class="epNav" id="pEpNav" hidden>
+        <button id="pPrev">‹ Prev</button>
+        <button id="pNext">Next ›</button>
+      </span>
+      <span class="epNav" id="pNextSrvWrap">
+        <button id="pNextSrv" title="Video not starting? Try the next server">Next server →</button>
+      </span>
+      <span class="epNav" id="pTools">
+        <button id="pTheater" title="Widen the player">▣ Theater</button>
+        <button id="pShare" title="Copy a shareable link to this title">⤴ Share</button>
+      </span>
+      <span class="srvNote" id="pNote">HD · native playback</span>
+      <button class="srv" id="pStandalone" title="Open this server's stream as a standalone page (no iframe = no sandbox/domain blocks)">Standalone ↗</button>
+      <select class="srv" id="pQuality" hidden aria-label="Quality"></select>
+      <select class="srv" id="pAudio" hidden aria-label="Audio"></select>
+    </div>
+  </div>
+</div>
+
+<div class="profGate" id="profGate" hidden>
+  <div class="profCard">
+    <div class="logoName">FLIX<span>NOVA</span></div>
+    <h2>Who's watching?</h2>
+    <div class="psub">Each profile keeps its own List, watch history and ratings.</div>
+    <div class="profGrid" id="profGrid"></div>
+    <div id="profForm" hidden>
+      <input id="profName" maxlength="16" placeholder="Profile name" autocomplete="off">
+      <div class="profPick" id="profAvRow"></div>
+      <div class="profPick" id="profCoRow"></div>
+      <div class="row"><button class="btn go" id="profSave">Save</button><button class="btn ghost" id="profCancel">Cancel</button></div>
+    </div>
+    <div class="row" style="justify-content:center"><button class="btn ghost" id="profAdd">+ Add profile</button><button class="btn ghost" id="profManage">Manage</button><button class="btn ghost" id="profClose">Continue →</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  <b>FLIXNOVA</b> — browse trending movies, TV shows and anime.<br>
+  Metadata by Cinemeta, TVMaze and AniList · HD streams with multi-source fallback (native where CORS allows, mirror players otherwise) · Nothing is hosted here.
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<script>
+var API = "https://v3-cinemeta.strem.io";
+var mem = {};
+function R(){ return {}; }
+async function cj(path){
+  if(mem[path]) return mem[path];
+  var url = API + path;
+  function withTimeout(p, ms){
+    return Promise.race([p, new Promise(function(_, rej){ setTimeout(function(){ rej(new Error("timeout")); }, ms); })]);
+  }
+  var r = null;
+  try{ r = await withTimeout(fetch(url), 9000); if(!r.ok) throw new Error("HTTP "+r.status); }
+  catch(e){ throw new Error("network"); }
+  var j = await r.json();
+  mem[path] = j;
+  try{ var _mk = Object.keys(mem); if(_mk.length > 200) delete mem[_mk[0]]; }catch(ee){}
+  return j;
+}
+function $(s){ return document.querySelector(s); }
+function $all(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); }
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function toast(m){ var t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(t._x); t._x = setTimeout(function(){ t.classList.remove("show"); }, 2400); }
+
+var MOVIE_GENRES = ["Action","Adventure","Animation","Comedy","Crime","Drama","Fantasy","Horror","Mystery","Romance","Sci-Fi","Thriller"];
+var TV_GENRES = ["Action","Adventure","Animation","Comedy","Crime","Drama","Fantasy","Mystery","Romance","Sci-Fi","Thriller"];
+var ANIME_IDS = ["tt2560140","tt0877057","tt9335498","tt12343534","tt5626028","tt4508902","tt0214341","tt0433542","tt1355642","tt2098220","tt0409591","tt0988824","tt0388629","tt13918776","tt13603966","tt21209876"];
+
+var DB = {
+  list:[], cont:[], srv:0, rates:{}, pos:{}, mf:"", tm:"", pid:"p1", profiles:null,
+  async load(){
+    try{
+      this.list=JSON.parse(localStorage.getItem("cinehd-list")||"[]"); this.cont=JSON.parse(localStorage.getItem("cinehd-cont")||"[]");
+      this.srv=parseInt(localStorage.getItem("cinehd-srv")||"0",10)||0; this.mf=localStorage.getItem("cinehd-mf")||""; this.tm=localStorage.getItem("cinehd-tm")||"";
+      this.rates=JSON.parse(localStorage.getItem("cinehd-rates")||"{}");
+      try{this.pos=JSON.parse(localStorage.getItem("cinehd-pos")||"{}")}catch(x){this.pos={}}
+      await this.loadProfiles();
+    }catch(e){}
+  },
+  async save(){
+    try{await this.saveProfiles()}catch(e){}
+    try{localStorage.setItem("cinehd-list",JSON.stringify(this.list));localStorage.setItem("cinehd-cont",JSON.stringify(this.cont));localStorage.setItem("cinehd-srv",String(this.srv));localStorage.setItem("cinehd-mf",this.mf||"");localStorage.setItem("cinehd-tm",this.tm||"");localStorage.setItem("cinehd-rates",JSON.stringify(this.rates));localStorage.setItem("cinehd-pos",JSON.stringify(this.pos))}catch(e){}
+  },
+  inList:function(id){return this.list.some(function(x){return x.id===id})},
+  toggle:function(id,type,snap){if(this.inList(id))this.list=this.list.filter(function(x){return x.id!==id});else this.list.unshift({id:id,type:type,snap:snap||null});this.save()},
+  touchCont:function(entry){this.cont=this.cont.filter(function(x){return x.id!==entry.id});this.cont.unshift(entry);this.cont=this.cont.slice(0,24);this.save()},
+  syncProfile:function(){var self=this,cur=null;(this.profiles||[]).forEach(function(p){if(p.id===self.pid)cur=p});if(cur){cur.list=this.list;cur.cont=this.cont;cur.rates=this.rates;cur.pos=this.pos}},
+  async loadProfiles(){
+    var P=null,pid=null; try{P=JSON.parse(localStorage.getItem("cinehd-profiles")||"null");pid=localStorage.getItem("cinehd-pid")||null}catch(x){}
+    if(!P||!P.length){P=[{id:"p1",name:"You",av:"🦊",co:"#e3b341",list:this.list||[],cont:this.cont||[],rates:this.rates||{},pos:this.pos||{}}];pid="p1"}
+    this.profiles=P; var cur=null; P.forEach(function(p){if(p.id===pid)cur=p}); cur=cur||P[0];
+    this.pid=cur.id; this.list=cur.list||[];this.cont=cur.cont||[];this.rates=cur.rates||{};this.pos=cur.pos||{};
+    try{await this.saveProfiles()}catch(e){}
+  },
+  async saveProfiles(){this.syncProfile();try{localStorage.setItem("cinehd-profiles",JSON.stringify(this.profiles));localStorage.setItem("cinehd-pid",this.pid)}catch(e){}}
+};
+
+function catPath(type, genre, skip, q, year){
+  var p;
+  if(year){ p = "/catalog/" + type + "/year/" + year; }
+  else { p = "/catalog/" + type + "/top"; if(genre) p += "/genre=" + encodeURIComponent(genre); }
+  if(typeof skip === "number" && skip > 0) p += "/skip=" + skip;
+  if(q) p += "/search=" + encodeURIComponent(q);
+  return p + ".json";
+}
+async function catalog(type, genre, skip, q, year){
+  var j = await cj(catPath(type, genre, skip, q, year));
+  return (j && j.metas) || [];
+}
+async function metaOf(type, id){
+  var j = await cj("/meta/" + type + "/" + id + ".json");
+  return j && j.meta;
+}
+
+function progHTML(m){ try{ if(m && m._p > 0){ return '<span class="prog"><i style="width:' + Math.round(Math.min(1, m._p) * 100) + '%"></i></span>'; } }catch(e){} return ""; }
+function cardHTML(m, type){
+  var yr = (m.releaseInfo || m.year || "").toString().slice(0, 4);
+  var rt = m.imdbRating ? "★ " + m.imdbRating : "";
+  return '<article class="card" data-id="' + esc(m.id) + '" data-type="' + type + '">' +
+    '<img onerror="this.remove()" loading="lazy" referrerpolicy="no-referrer" src="' + esc(m.poster) + '" alt="' + esc(m.name) + '">' +
+    '<span class="q">HD</span>' +
+    (rt ? '<span class="rt">' + esc(rt) + '</span>' : '') +
+    '<div class="hov"><i>▶</i><button class="ql" data-id="' + esc(m.id) + '" data-type="' + type + '" title="Add to My List">＋</button></div>' +
+    '<div class="ct"><b>' + esc(m.name) + '</b><span>' + esc(yr) + (yr && rt ? " · " : "") + esc(rt.replace("★ ","")) + '</span></div>' + progHTML(m) + '</article>';
+}
+function skels(el, n){
+  var h = "";
+  for(var i = 0; i < n; i++) h += '<div class="card skel"></div>';
+  el.innerHTML = h;
+}
+document.addEventListener("click", function(e){
+  var q = e.target && e.target.closest ? e.target.closest(".ql") : null;
+  if(!q) return;
+  e.stopPropagation();
+  e.preventDefault();
+  var card = q.closest(".card");
+  var snap = null;
+  if(card){
+    var im = card.querySelector("img"), tt = card.querySelector(".ct b"), mm = card.querySelector(".ct span");
+    snap = { title:tt ? tt.textContent : "", poster:im ? im.src : "", year:"", rating:"" };
+  }
+  var qid = q.getAttribute("data-id") || (q.getAttribute("data-ali") ? "ali" + q.getAttribute("data-ali") : "");
+  if(!qid) return;
+  DB.toggle(qid, q.getAttribute("data-type"), snap);
+  toast(DB.inList(qid) ? "Added to My List" : "Removed from My List");
+}, true);
+function bindCards(scope){
+  (scope || document).querySelectorAll(".card").forEach(function(c){
+    if(c._b) return; c._b = 1;
+    c.setAttribute("tabindex", "0");
+    c.setAttribute("role", "button");
+    function go(){
+      var t = c.getAttribute("data-type");
+      if(t === "anime"){
+        var ali = c.getAttribute("data-ali") || String(c.getAttribute("data-id") || "").replace(/^ali/, "");
+        if(ali) openAnimeDetail(ali);
+        return;
+      }
+      openDetail(c.getAttribute("data-id"), t);
+    }
+    c.addEventListener("click", go);
+    c.addEventListener("keydown", function(e){ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); go(); } });
+  });
+}
+
+var VIEW = "home";
+var loaded = {};
+function show(v){
+  VIEW = v;
+  ["home","movies","tv","anime","search","mylist","community"].forEach(function(k){ $("#v-" + k).hidden = k !== v; });
+  $all("#deskNav button, #mobNav button").forEach(function(b){ b.classList.toggle("on", b.getAttribute("data-v") === v); });
+  window.scrollTo({ top:0 });
+  if(v === "home" && !loaded.home) loadHome();
+  if(v === "movies" && !loaded.movies) initGrid("movie");
+  if(v === "tv" && !loaded.tv) initGrid("series");
+  if(v === "anime" && !loaded.anime) loadAnime();
+  if(v === "mylist") loadList();
+  if(v === "community") renderCommunity();
+  if(v === "home" && loaded.home) injectPicks();
+}
+$all("#deskNav button, #mobNav button").forEach(function(b){ b.addEventListener("click", function(){ show(b.getAttribute("data-v")); }); });
+$("#logoBtn").addEventListener("click", function(){ show("home"); });
+
+var heroItems = [], heroIdx = 0, heroTimer = 0;
+function heroPaint(){
+  var m = heroItems[heroIdx]; if(!m) return;
+  var bg = $("#heroBg");
+  bg.style.backgroundImage = 'url("' + (m.background || m.poster) + '")';
+  $("#heroKick").textContent = "✦ " + (m._kick || "FEATURED");
+  $("#heroTitle").textContent = m.name;
+  $("#heroMeta").innerHTML =
+    (m.imdbRating ? '<span class="rate">★ ' + esc(m.imdbRating) + '</span>' : '') +
+    '<span>' + esc((m.releaseInfo || "").slice(0, 4)) + '</span>' +
+    '<span class="pill">HD</span>' +
+    ((m.genres || []).slice(0, 3).map(function(g){ return '<span>' + esc(g) + '</span>'; }).join(""));
+  $("#heroDesc").textContent = m._desc || "";
+  var dots = $("#heroDots"); dots.innerHTML = "";
+  heroItems.forEach(function(_, i){
+    var d = document.createElement("button");
+    if(i === heroIdx) d.className = "on";
+    d.setAttribute("aria-label", "Slide " + (i + 1));
+    d.addEventListener("click", function(){ heroGo(i); });
+    dots.appendChild(d);
+  });
+  var hl = $("#heroList");
+  if(hl){ var hm = heroItems[heroIdx]; hl.textContent = (hm && DB.inList(hm.id)) ? "In List" : "+ List"; }
+}
+function heroGo(i){
+  heroIdx = (i + heroItems.length) % heroItems.length;
+  heroPaint();
+  clearInterval(heroTimer);
+  heroTimer = setInterval(function(){ heroGo(heroIdx + 1); }, 8000);
+}
+$("#hPrev").addEventListener("click", function(){ heroGo(heroIdx - 1); });
+$("#hNext").addEventListener("click", function(){ heroGo(heroIdx + 1); });
+$("#heroPlay").addEventListener("click", function(){
+  var m = heroItems[heroIdx]; if(!m) return;
+  if(m.type === "series" && m._first){ playEp(m._full || m, 1, 1); }
+  else openDetail(m.id, m.type, true);
+});
+$("#heroInfo").addEventListener("click", function(){
+  var m = heroItems[heroIdx]; if(m) openDetail(m.id, m.type);
+});
+
+function rowHTML(title, items, type, moreView){
+  return '<div class="rowSec"><div class="rowHead"><h2>' + esc(title) + '</h2>' +
+    (moreView ? '<button class="more" data-more="' + moreView + '">See all →</button>' : '') +
+    '</div><div class="rail">' + items.map(function(m){ return cardHTML(m, type); }).join("") + "</div></div>";
+}
+function rowHTMLMixed(title, items, moreView){
+  return '<div class="rowSec"><div class="rowHead"><h2>' + esc(title) + '</h2>' +
+    (moreView ? '<button class="more" data-more="' + moreView + '">See all →</button>' : '') +
+    '</div><div class="rail">' + items.map(function(m){ return cardHTML(m, m._t); }).join("") + "</div></div>";
+}
+function rowHTMLTop10(title, items, type){
+  return '<div class="rowSec"><div class="rowHead"><h2>' + esc(title) + '</h2></div><div class="rail top10">' +
+    items.map(function(m, i){ return cardHTML10(m, type, i + 1); }).join("") + "</div></div>";
+}
+function cardHTML10(m, type, rank){
+  var yr = (m.releaseInfo || m.year || "").toString().slice(0, 4);
+  return '<article class="card t10" data-id="' + esc(m.id) + '" data-type="' + type + '">' +
+    '<span class="rank">' + rank + "</span>" +
+    '<img onerror="this.remove()" loading="lazy" referrerpolicy="no-referrer" src="' + esc(m.poster) + '" alt="' + esc(m.name) + '">' +
+    '<span class="q">HD</span>' +
+    '<div class="hov"><i>▶</i><button class="ql" data-id="' + esc(m.id) + '" data-type="' + type + '" title="Add to My List">＋</button></div>' +
+    '<div class="ct"><b>' + esc(m.name) + '</b><span>' + esc(yr) + (m.imdbRating ? " · ★ " + esc(m.imdbRating) : "") + "</span></div>" + progHTML(m) + "</article>";
+}
+
+async function loadHome(){
+  loaded.home = 1;
+  var box = $("#homeRows");
+  box.innerHTML = '<div class="rowSec"><div class="rail">' + new Array(6).fill('<div class="card skel"></div>').join("") + "</div></div>";
+  try{
+    var calls = [
+      catalog("movie", "", 0).then(function(r){ return { k:"tm", items:r.slice(0, 14) }; }),
+      catalog("movie", "", 0).then(function(){ return cj("/catalog/movie/imdbRating.json").then(function(j){ return { k:"tr", items:(j.metas || []).slice(0, 14) }; }); }),
+      catalog("series", "", 0).then(function(r){ return { k:"ps", items:r.slice(0, 14) }; }),
+      catalog("series", "", 0).then(function(){ return cj("/catalog/series/imdbRating.json").then(function(j){ return { k:"ts", items:(j.metas || []).slice(0, 14) }; }); })
+    ];
+    var res = await Promise.all(calls.map(function(p){ return p.catch(function(){ return null; }); }));
+    var byK = {};
+    res.forEach(function(r){ if(r) byK[r.k] = r.items; });
+    var tm = byK.tm || [], tr = byK.tr || [], ps = byK.ps || [], ts = byK.ts || [];
+    tm.forEach(function(m){ m.type = "movie"; m._kick = "TRENDING MOVIE"; });
+    ps.forEach(function(m){ m.type = "series"; m._kick = "TRENDING SERIES"; });
+    var pool = tm.concat(ps).filter(function(m){ return parseFloat(m.imdbRating) >= 7; });
+    if(pool.length < 4) pool = tm.concat(ps);
+    var picks = pool.slice(0, 6);
+    var fulls = await Promise.all(picks.map(function(m){ return metaOf(m.type, m.id).catch(function(){ return null; }); }));
+    heroItems = picks.map(function(m, i){
+      var f = fulls[i];
+      if(f){ m._desc = (f.description || "").slice(0, 220); m._full = f; m.background = f.background || m.background; }
+      return m;
+    }).filter(function(m){ return m.background || m.poster; });
+    heroGo(0);
+    var html = "";
+    if(DB.cont.length){
+      html += '<div class="rowSec"><div class="rowHead"><h2>Continue Watching</h2><button class="more" id="contClear">Clear all</button></div><div class="rail" id="contRail">' +
+        DB.cont.map(function(c){ var pp = 0; try{ Object.keys(DB.pos || {}).forEach(function(k){ if(k.indexOf(c.id + "|") === 0 && DB.pos[k].d) pp = Math.max(pp, DB.pos[k].t / DB.pos[k].d); }); if(!pp && c.p) pp = c.p > 1 ? 1 : c.p; }catch(x){} return cardHTML({ id:c.id, name:c.title, poster:c.poster, releaseInfo:c.year, imdbRating:c.rating, _p:pp }, c.type); }).join("") + "</div></div>";
+    }
+    html += rowHTML("Trending Movies", tm, "movie", "movies");
+    html += rowHTMLTop10("Top 10 Movies Today", tr.slice(0, 10), "movie");
+    html += rowHTML("Top Rated Movies", tr, "movie", "movies");
+    html += rowHTML("Popular Series", ps, "series", "tv");
+    html += rowHTML("Top Rated Series", ts, "series", "tv");
+    var an = await Promise.all(ANIME_IDS.slice(0, 10).map(function(id){ return metaOf("series", id).catch(function(){ return null; }); }));
+    var anMetas = an.filter(Boolean).map(function(f){ return { id:f.id, name:f.name, poster:f.poster, releaseInfo:f.releaseInfo, imdbRating:f.imdbRating }; });
+    if(anMetas.length) html += rowHTML("Top Anime", anMetas, "series", "anime");
+    try{
+      var sched = await tvJSON("/schedule?country=US");
+      var seen = {}, air = [];
+      sched.forEach(function(e){
+        var sh = e.show || {};
+        var imdb = (sh.externals || {}).imdb;
+        if(!imdb || seen[imdb] || !sh.image) return;
+        seen[imdb] = 1;
+        air.push({ id:imdb, _t:"series", name:sh.name, poster:sh.image.medium, releaseInfo:"", imdbRating:"" });
+      });
+      if(air.length > 6) html += rowHTMLMixed("Airing Today", air.slice(0, 14));
+    }catch(e){}
+    try{
+      var km = await catalog("movie", "Animation", 0).catch(function(){ return []; });
+      var ks = await catalog("series", "Animation", 0).catch(function(){ return []; });
+      var kids = km.slice(0, 7).map(function(m){ m._t = "movie"; return m; })
+        .concat(ks.slice(0, 7).map(function(m){ m._t = "series"; return m; }));
+      if(kids.length > 4) html += rowHTMLMixed("Kids & Animation", kids);
+    }catch(e){}
+    box.innerHTML = html;
+    bindCards(box);
+    var cr = $("#contRail");
+    if(cr) cr.querySelectorAll(".card").forEach(function(c){
+      var cid = c.getAttribute("data-id");
+      var x = document.createElement("button");
+      x.className = "cx"; x.textContent = "×"; x.title = "Remove from Continue Watching";
+      x.addEventListener("click", function(ev){
+        ev.stopPropagation(); ev.preventDefault();
+        DB.cont = DB.cont.filter(function(o){ return o.id !== cid; });
+        try{ Object.keys(DB.pos || {}).forEach(function(k){ if(k.indexOf(cid + "|") === 0) delete DB.pos[k]; }); }catch(e2){}
+        DB.save();
+        if(c.parentNode) c.parentNode.removeChild(c);
+        if(!cr.querySelector(".card")){ var row = cr.closest(".rowSec"); if(row) row.remove(); }
+        toast("Removed from Continue Watching");
+      });
+      c.appendChild(x);
+      c.addEventListener("click", function(e){
+        if(e && e.target && e.target.closest && e.target.closest(".cx")) return;
+        var hit = null;
+        DB.cont.forEach(function(x){ if(x.id === c.getAttribute("data-id")) hit = x; });
+        if(hit && hit.s) playEp({ id:hit.id, name:hit.title, poster:hit.poster, moviedb_id:hit.tmdb }, hit.s, hit.e);
+        else openDetail(c.getAttribute("data-id"), c.getAttribute("data-type"));
+      }, true);
+    });
+    $all("[data-more]").forEach(function(b){ b.addEventListener("click", function(){ show(b.getAttribute("data-more")); }); });
+    var cc = $("#contClear");
+    if(cc) cc.addEventListener("click", function(){ DB.cont = []; DB.save(); var row = cc.closest(".rowSec"); if(row) row.remove(); toast("Continue Watching cleared"); });
+  }catch(e){ box.innerHTML = '<div class="empty">Could not load the catalogue. Check your connection.<br><br><button class="btn ghost" id="homeRetry">Retry</button></div>'; try{ $("#homeRetry").addEventListener("click", function(){ loaded.home = 0; show("home"); }); }catch(e){} }
+}
+
+var gridState = {
+  movie:{ genre:"", year:"", skip:0, done:false },
+  series:{ genre:"", year:"", skip:0, done:false }
+};
+var YEAR_OPTS = ["2026","2025","2024","2023","2022","2021","2020","2019","2018","2015","2010","2005","2000","1995"];
+function yearSelectHTML(id){
+  return '<select class="yrSel" id="' + id + '" aria-label="Filter by year"><option value="">All years</option>' +
+    YEAR_OPTS.map(function(y){ return '<option value="' + y + '">' + y + "</option>"; }).join("") + "</select>";
+}
+function chipRow(el, genres, cur, cb){
+  el.innerHTML = '<button data-g="" class="' + (cur ? "" : "on") + '">All</button>' +
+    genres.map(function(g){ return '<button data-g="' + g + '" class="' + (g === cur ? "on" : "") + '">' + g + "</button>"; }).join("");
+  el.querySelectorAll("button").forEach(function(b){ b.addEventListener("click", function(){ cb(b.getAttribute("data-g")); }); });
+}
+async function yearHunt(type, year){
+  var out = [], seen = {}, myHunt = (yearHunt._n = (yearHunt._n || 0) + 1);
+  var feeds = [
+    function(p){ return catalog(type, "", p * 50); },
+    function(p){ return cj("/catalog/" + type + "/imdbRating" + (p ? "/skip=" + (p * 50) : "") + ".json").then(function(j){ return j.metas || []; }); }
+  ];
+  for(var fi = 0; fi < feeds.length && out.length < 60; fi++){
+    for(var p = 0; p < 4 && out.length < 60; p++){
+      if(myHunt !== yearHunt._n) return [];
+      var items = [];
+      try{ items = await feeds[fi](p); }catch(e){ break; }
+      if(!items.length) break;
+      items.forEach(function(m){
+        if(String(m.releaseInfo || "").slice(0, 4) === year && !seen[m.id]){ seen[m.id] = 1; out.push(m); }
+      });
+      if(items.length < 50) break;
+    }
+  }
+  return out;
+}
+async function initGrid(kind){
+  loaded[kind === "movie" ? "movies" : "tv"] = 1;
+  var type = kind;
+  var st = gridState[type];
+  var chipsEl = type === "movie" ? $("#movieChips") : $("#tvChips");
+  var gridEl = type === "movie" ? $("#movieGrid") : $("#tvGrid");
+  var moreEl = type === "movie" ? $("#movieMore") : $("#tvMore");
+  st.genre = ""; st.year = ""; st.skip = 0; st.done = false;
+  gridEl.innerHTML = "";
+  function reset(){ st.skip = 0; st.done = false; gridEl.innerHTML = ""; moreEl.hidden = false; paintChips(); load(); }
+  function paintChips(){ chipRow(chipsEl, type === "movie" ? MOVIE_GENRES : TV_GENRES, st.genre, function(g){ st.genre = g; st.year = ""; syncYr(); reset(); }); }
+  function syncYr(){ var s = type === "movie" ? $("#movieYr") : $("#tvYr"); if(s && s.value !== st.year) s.value = st.year; }
+  var yrWrap = type === "movie" ? $("#movieYrWrap") : $("#tvYrWrap");
+  yrWrap.innerHTML = yearSelectHTML(type === "movie" ? "movieYr" : "tvYr");
+  var yrSel = yrWrap.querySelector("select");
+  yrSel.value = "";
+  yrSel.addEventListener("change", function(){ st.year = yrSel.value; st.genre = ""; reset(); });
+  async function load(){
+    var fresh = st.skip === 0;
+    if(fresh) skels(gridEl, 12);
+    else { moreEl.disabled = true; moreEl.textContent = "Loading…"; }
+    try{
+      var items;
+      if(st.year){
+        items = await yearHunt(type, st.year);
+        st.done = true; moreEl.hidden = true;
+      } else items = await catalog(type, st.genre, st.skip, "", "");
+      if(fresh) gridEl.innerHTML = "";
+      gridEl.querySelectorAll(".skel").forEach(function(s){ s.remove(); });
+      gridEl.innerHTML += items.map(function(m){ return cardHTML(m, type); }).join("");
+      bindCards(gridEl);
+      if(!st.year){
+        if(!items.length || items.length < 20){ st.done = true; moreEl.hidden = true; }
+        else { moreEl.hidden = false; moreEl.disabled = false; moreEl.textContent = "Load More"; }
+        st.skip += 50;
+      } else if(!items.length) gridEl.innerHTML = '<div class="empty">Nothing found for ' + esc(st.year) + ".</div>";
+    }catch(e){ gridEl.innerHTML = '<div class="empty">Load failed — try again.</div>'; moreEl.disabled = false; moreEl.textContent = "Load More"; }
+  }
+  moreEl.onclick = load;
+  paintChips();
+  load();
+}
+
+var aniState = { mode:"top", page:1, hasNext:true, q:"", busy:false };
+var ALI_SORT = { top:"SCORE_DESC", trend:"TRENDING_DESC", pop:"POPULARITY_DESC" };
+var ALI_LIST_Q = "query($p:Int,$sort:[MediaSort],$s:String){Page(page:$p,perPage:24){pageInfo{hasNextPage}media(sort:$sort,search:$s,type:ANIME){id title{romaji english} coverImage{large} averageScore seasonYear genres format}}}";
+async function aniGraph(query, vars){
+  var body = JSON.stringify({ query:query, variables:vars });
+  function withTimeout(p, ms){
+    return Promise.race([p, new Promise(function(_, rej){ setTimeout(function(){ rej(new Error("timeout")); }, ms); })]);
+  }
+  try{
+    var r = await withTimeout(fetch("https://graphql.anilist.co", { method:"POST", headers:{ "Content-Type":"application/json" }, body:body }), 10000);
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    return await r.json();
+  }catch(e){
+    var RR = null;
+    RR = null;
+    if(RR && RR.superFetch){
+      var r2 = await withTimeout(RR.superFetch("https://graphql.anilist.co", { method:"POST", headers:{ "Content-Type":"application/json" }, body:body }), 12000);
+      return await r2.json();
+    }
+    throw e;
+  }
+}
+function aliName(m){ return m.title.english || m.title.romaji || ""; }
+function aliCard(m){
+  var name = aliName(m);
+  var yr = m.seasonYear || "";
+  var rt = m.averageScore ? "★ " + (m.averageScore / 10).toFixed(1) : "";
+  return '<article class="card" data-ali="' + m.id + '" data-type="anime">' +
+    '<img onerror="this.remove()" loading="lazy" referrerpolicy="no-referrer" src="' + esc(m.coverImage.large) + '" alt="' + esc(name) + '">' +
+    '<span class="q">HD</span>' +
+    (rt ? '<span class="rt">' + esc(rt) + "</span>" : "") +
+    '<div class="hov"><i>▶</i><button class="ql" data-ali="' + m.id + '" data-type="anime" title="Add to My List">＋</button></div>' +
+    '<div class="ct"><b>' + esc(name) + "</b><span>" + esc(yr) + "</span></div>" + progHTML(m) + "</article>";
+}
+async function loadAnime(){
+  loaded.anime = 1;
+  aniState.page = 1; aniState.hasNext = true;
+  $("#animeGrid").innerHTML = "";
+  $all("#animeTabs button").forEach(function(b){
+    b.onclick = function(){
+      aniState.mode = b.getAttribute("data-m"); aniState.q = ""; $("#animeInput").value = "";
+      $all("#animeTabs button").forEach(function(x){ x.classList.toggle("on", x === b); });
+      aniState.page = 1; aniState.hasNext = true; $("#animeGrid").innerHTML = ""; $("#animeMore").hidden = false;
+      aniLoad();
+    };
+  });
+  $("#animeGo").onclick = function(){
+    aniState.q = $("#animeInput").value.trim();
+    aniState.page = 1; aniState.hasNext = true; $("#animeGrid").innerHTML = ""; $("#animeMore").hidden = false;
+    aniLoad();
+  };
+  $("#animeInput").addEventListener("keydown", function(e){ if(e.key === "Enter") $("#animeGo").click(); });
+  $("#animeMore").onclick = aniLoad;
+  aniLoad();
+}
+async function aniLoad(){
+  if(aniState.busy || !aniState.hasNext) return;
+  aniState.busy = true;
+  var grid = $("#animeGrid"), more = $("#animeMore");
+  var fresh = aniState.page === 1;
+  if(fresh) skels(grid, 12);
+  else { more.disabled = true; more.textContent = "Loading…"; }
+  try{
+    var vars = aniState.q ? { p:aniState.page, s:aniState.q } : { p:aniState.page, sort:[ALI_SORT[aniState.mode]] };
+    var j = await aniGraph(ALI_LIST_Q, vars);
+    var pg = j.data.Page;
+    aniState.hasNext = !!(pg.pageInfo && pg.pageInfo.hasNextPage);
+    if(fresh) grid.innerHTML = "";
+    grid.querySelectorAll(".skel").forEach(function(s){ s.remove(); });
+    grid.innerHTML += pg.media.map(aliCard).join("");
+    bindCards(grid);
+    aniState.page++;
+    more.hidden = !aniState.hasNext;
+    more.disabled = false; more.textContent = "Load More";
+    if(!grid.querySelectorAll(".card").length) grid.innerHTML = '<div class="empty">No anime found.</div>';
+  }catch(e){
